@@ -116,6 +116,7 @@ impl Assessment {
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum DealStatus {
     Draft,
+    Funded,
     Active,
     Completed,
     Cancelled,

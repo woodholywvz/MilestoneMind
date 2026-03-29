@@ -5,7 +5,7 @@ pub mod errors;
 pub mod instructions;
 pub mod state;
 
-use instructions::{CreateDeal, CreateMilestone, InitializePlatform};
+use instructions::{CreateDeal, CreateMilestone, FundDeal, InitializePlatform};
 
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkgMQHG7d43x");
 
@@ -39,5 +39,9 @@ pub mod milestone_mind {
         amount: u64,
     ) -> Result<()> {
         instructions::create_milestone::handler(ctx, index, title, amount)
+    }
+
+    pub fn fund_deal(ctx: Context<FundDeal>) -> Result<()> {
+        instructions::fund_deal::handler(ctx)
     }
 }

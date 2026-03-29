@@ -5,10 +5,13 @@ export const MILESTONE_MIND_MAX_LENGTHS = {
   assessmentSummary: 280,
 } as const;
 
+export const MOCK_USDC_DECIMALS = 6;
+
 type EmptyAnchorEnum = Record<string, never>;
 
 export enum DealStatus {
   Draft = "draft",
+  Funded = "funded",
   Active = "active",
   Completed = "completed",
   Cancelled = "cancelled",
@@ -16,6 +19,7 @@ export enum DealStatus {
 
 export type DealStatusMirror =
   | { draft: EmptyAnchorEnum }
+  | { funded: EmptyAnchorEnum }
   | { active: EmptyAnchorEnum }
   | { completed: EmptyAnchorEnum }
   | { cancelled: EmptyAnchorEnum };

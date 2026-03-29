@@ -3,10 +3,22 @@ import test from "node:test";
 
 import * as anchor from "@coral-xyz/anchor";
 import { web3 } from "@coral-xyz/anchor";
+import {
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+  TOKEN_PROGRAM_ID,
+  createAssociatedTokenAccountIdempotent,
+  createMint,
+  getAccount,
+  getAssociatedTokenAddressSync,
+  getMint,
+  mintTo,
+} from "@solana/spl-token";
 
 const PLATFORM_SEED = Buffer.from("platform");
 const DEAL_SEED = Buffer.from("deal");
 const MILESTONE_SEED = Buffer.from("milestone");
+const VAULT_SEED = Buffer.from("vault");
+const MOCK_USDC_DECIMALS = 6;
 
 function u64Le(value: number | bigint): Buffer {
   const buffer = Buffer.alloc(8);
@@ -29,10 +41,11 @@ test("milestone_mind happy path", async (t) => {
   anchor.setProvider(provider);
 
   const program = anchor.workspace.MilestoneMind as anchor.Program<anchor.Idl>;
-  const client = provider.wallet as anchor.Wallet;
-  const admin = client.publicKey;
+  const wallet = provider.wallet as anchor.Wallet & { payer: web3.Keypair };
+  const payer = wallet.payer;
+  const client = wallet;
+  const admin = wallet.publicKey;
   const assessor = web3.Keypair.generate().publicKey;
-  const usdcMint = web3.Keypair.generate().publicKey;
   const freelancer = web3.Keypair.generate().publicKey;
   const dealTitle = "Launch landing page";
   const milestoneTitles = [
@@ -41,14 +54,45 @@ test("milestone_mind happy path", async (t) => {
     "Polish analytics hooks",
   ];
   const milestoneAmounts = [
-    new anchor.BN(2_000),
-    new anchor.BN(3_000),
-    new anchor.BN(5_000),
+    new anchor.BN(2_000_000),
+    new anchor.BN(3_000_000),
+    new anchor.BN(5_000_000),
   ];
   const totalAmount = milestoneAmounts.reduce(
     (sum, amount) => sum.add(amount),
     new anchor.BN(0),
   );
+  const clientStartingBalance = BigInt(20_000_000);
+  const usdcMint = await createMint(
+    provider.connection,
+    payer,
+    payer.publicKey,
+    null,
+    MOCK_USDC_DECIMALS,
+  );
+  const clientTokenAccount = await createAssociatedTokenAccountIdempotent(
+    provider.connection,
+    payer,
+    usdcMint,
+    client.publicKey,
+  );
+
+  await mintTo(
+    provider.connection,
+    payer,
+    usdcMint,
+    clientTokenAccount,
+    payer,
+    clientStartingBalance,
+  );
+
+  await t.test("create mint and mint test tokens to client", async () => {
+    const mintAccount = await getMint(provider.connection, usdcMint);
+    const clientAccount = await getAccount(provider.connection, clientTokenAccount);
+
+    assert.equal(mintAccount.decimals, MOCK_USDC_DECIMALS);
+    assert.equal(clientAccount.amount, clientStartingBalance);
+  });
 
   const [platformPda] = web3.PublicKey.findProgramAddressSync(
     [PLATFORM_SEED],
@@ -114,6 +158,15 @@ test("milestone_mind happy path", async (t) => {
       program.programId,
     )[0],
   );
+  const [vaultAuthorityPda] = web3.PublicKey.findProgramAddressSync(
+    [VAULT_SEED, dealPda.toBuffer()],
+    program.programId,
+  );
+  const vaultTokenAccount = getAssociatedTokenAddressSync(
+    usdcMint,
+    vaultAuthorityPda,
+    true,
+  );
 
   for (const [index, milestoneTitle] of milestoneTitles.entries()) {
     await program.methods
@@ -176,5 +229,51 @@ test("milestone_mind happy path", async (t) => {
     assert.equal(milestone.attachmentCount, 0);
     assert.ok(milestone.lastSubmittedAt.eqn(0));
     assert.equal(typeof milestone.bump, "number");
+  });
+
+  await t.test("fund_deal moves client funds into the vault escrow", async () => {
+    const vaultBeforeFunding = await provider.connection.getAccountInfo(vaultTokenAccount);
+    const clientBalanceBefore = (await getAccount(
+      provider.connection,
+      clientTokenAccount,
+    )).amount;
+
+    assert.equal(vaultBeforeFunding, null);
+    assert.equal(clientBalanceBefore, clientStartingBalance);
+
+    await program.methods
+      .fundDeal()
+      .accounts({
+        platform: platformPda,
+        client: client.publicKey,
+        deal: dealPda,
+        mint: usdcMint,
+        vaultAuthority: vaultAuthorityPda,
+        clientTokenAccount,
+        vaultTokenAccount,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: web3.SystemProgram.programId,
+      })
+      .rpc();
+
+    const clientBalanceAfter = (await getAccount(
+      provider.connection,
+      clientTokenAccount,
+    )).amount;
+    const vaultBalanceAfter = (await getAccount(
+      provider.connection,
+      vaultTokenAccount,
+    ));
+    const deal = await program.account.deal.fetch(dealPda);
+
+    assert.equal(
+      clientBalanceAfter,
+      clientStartingBalance - BigInt(totalAmount.toString()),
+    );
+    assert.equal(vaultBalanceAfter.amount, BigInt(totalAmount.toString()));
+    assert.equal(vaultBalanceAfter.owner.toBase58(), vaultAuthorityPda.toBase58());
+    assert.equal(enumKey(deal.status), "funded");
+    assert.equal(deal.fundedAmount.toString(), totalAmount.toString());
   });
 });

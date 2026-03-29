@@ -18,6 +18,14 @@ pub enum MilestoneMindError {
     MilestoneIndexOutOfBounds,
     #[msg("Amount must be greater than zero.")]
     InvalidAmount,
+    #[msg("The provided mint is not valid for this deal.")]
+    InvalidMint,
+    #[msg("The deal has already been funded.")]
+    AlreadyFunded,
+    #[msg("The deal is not in a fundable status.")]
+    InvalidDealStatus,
+    #[msg("The client token account does not have enough balance to fund this deal.")]
+    InsufficientClientBalance,
     #[msg("Arithmetic overflow occurred.")]
     ArithmeticOverflow,
 }
