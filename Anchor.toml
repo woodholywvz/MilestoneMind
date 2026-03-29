@@ -11,3 +11,6 @@ milestone_mind = "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkgMQHG7d43x"
 [provider]
 cluster = "Localnet"
 wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "node --import tsx --test tests/milestone-mind.test.ts"

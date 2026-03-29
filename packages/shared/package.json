@@ -16,10 +16,15 @@
     "./types": {
       "types": "./src/types.ts",
       "default": "./dist/types.js"
+    },
+    "./milestone-mind": {
+      "types": "./src/milestone-mind.ts",
+      "default": "./dist/milestone-mind.js"
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "idl"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",

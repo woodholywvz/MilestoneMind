@@ -15,9 +15,12 @@
     "build": "npm run build --workspace @milestone-mind/shared && npm run build --workspace @milestone-mind/executor && npm run build --workspace @milestone-mind/web",
     "lint": "npm run lint --workspace @milestone-mind/shared && npm run lint --workspace @milestone-mind/executor && npm run lint --workspace @milestone-mind/web",
     "test": "npm run test --workspace @milestone-mind/shared && npm run test --workspace @milestone-mind/executor && node ./scripts/check-ai-health-route.mjs",
-    "anchor:build": "anchor build"
+    "anchor:build": "anchor build && npm run anchor:sync-idl",
+    "anchor:sync-idl": "node ./scripts/sync-anchor-idl.mjs",
+    "anchor:test": "node --import tsx --test tests/milestone-mind.test.ts"
   },
   "devDependencies": {
+    "@coral-xyz/anchor": "^0.30.1",
     "@eslint/js": "^9.24.0",
     "@types/node": "^24.0.0",
     "eslint": "^9.24.0",
