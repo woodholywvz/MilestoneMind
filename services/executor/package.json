@@ -1,0 +1,16 @@
+{
+  "name": "@milestone-mind/executor",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "lint": "eslint src tests",
+    "test": "npm run build && node tests/health.test.mjs"
+  },
+  "dependencies": {
+    "@milestone-mind/shared": "file:../../packages/shared"
+  }
+}

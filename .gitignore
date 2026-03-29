@@ -1,0 +1,17 @@
+node_modules/
+.npm-cache/
+dist/
+.next/
+coverage/
+.turbo/
+target/
+.anchor/
+.DS_Store
+Thumbs.db
+__pycache__/
+.pytest_cache/
+.venv/
+*.pyc
+.env
+.env.local
+.env.*.local

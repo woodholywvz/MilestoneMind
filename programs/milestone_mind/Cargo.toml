@@ -1,0 +1,19 @@
+[package]
+name = "milestone_mind"
+version = "0.1.0"
+description = "MilestoneMind Anchor program skeleton"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "milestone_mind"
+
+[features]
+default = []
+cpi = ["no-entrypoint"]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+
+[dependencies]
+anchor-lang = "0.30.1"
