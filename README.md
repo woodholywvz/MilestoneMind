@@ -27,6 +27,67 @@ npm install
 python -m pip install -r services/ai/requirements.txt -r services/ai/requirements-dev.txt
 ```
 
+## AI service
+
+Run the AI service:
+
+```bash
+npm run dev:ai
+```
+
+Manual equivalent:
+
+```bash
+cd services/ai
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+AI environment variables:
+
+- `AI_HOST`
+- `AI_PORT`
+- `AI_ASSESSMENT_ENGINE_VERSION` default `rules-v1`
+- `AI_ENABLE_LLM` reserved for future optional paths; default `0`
+
+Sample assessment request:
+
+```json
+{
+  "dealPubkey": "Deal11111111111111111111111111111111111111111",
+  "milestonePubkey": "Mile1111111111111111111111111111111111111111",
+  "milestoneIndex": 0,
+  "dealTitle": "Production landing page rollout",
+  "milestoneTitle": "Finalize deployment and acceptance package",
+  "milestoneAmount": 7000000,
+  "evidenceUri": "ipfs://milestonemind/final-package-v1",
+  "evidenceHashHex": "abababababababababababababababababababababababababababababababab",
+  "evidenceSummary": "Final delivered production package accepted by the client. Complete invoice bundle, screenshots, rollout notes, and deployment confirmation are attached for the milestone review.",
+  "attachmentCount": 3
+}
+```
+
+Sample assessment response:
+
+```json
+{
+  "decision": "approve",
+  "confidenceBps": 9000,
+  "approvedBps": 10000,
+  "summary": "Evidence package is strong and supports a full approval.",
+  "rationaleHashHex": "7b5faff8f8bd2c80ff725abe9b17b43ec3f5240a3fdf9cd9c2c40732b6a4fd3b",
+  "ruleTrace": [
+    "engine: rules-v1 (deterministic rules path)",
+    "summary-length: 178 chars -> +40",
+    "attachments: 3 -> +15",
+    "strong-keywords: accepted, complete, delivered, final, invoice, production -> +30",
+    "suspicious-keywords: none -> -0",
+    "score: 85",
+    "decision: approve with approvedBps=10000 and confidenceBps=9000"
+  ],
+  "engineVersion": "rules-v1"
+}
+```
+
 ## Local validator
 
 Start a fresh validator in a dedicated terminal:

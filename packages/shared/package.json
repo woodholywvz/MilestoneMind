@@ -9,6 +9,10 @@
       "types": "./src/index.ts",
       "default": "./dist/index.js"
     },
+    "./assessment": {
+      "types": "./src/assessment.ts",
+      "default": "./dist/assessment.js"
+    },
     "./env": {
       "types": "./src/env.ts",
       "default": "./dist/env.js"
@@ -30,6 +34,9 @@
     "dist",
     "idl"
   ],
+  "dependencies": {
+    "zod": "^3.24.1"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "lint": "eslint src",
