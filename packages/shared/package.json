@@ -13,6 +13,10 @@
       "types": "./src/env.ts",
       "default": "./dist/env.js"
     },
+    "./evidence": {
+      "types": "./src/evidence.ts",
+      "default": "./dist/evidence.js"
+    },
     "./types": {
       "types": "./src/types.ts",
       "default": "./dist/types.js"

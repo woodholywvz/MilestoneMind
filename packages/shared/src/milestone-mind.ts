@@ -12,7 +12,7 @@ type EmptyAnchorEnum = Record<string, never>;
 export enum DealStatus {
   Draft = "draft",
   Funded = "funded",
-  Active = "active",
+  InProgress = "inProgress",
   Completed = "completed",
   Cancelled = "cancelled",
 }
@@ -20,24 +20,26 @@ export enum DealStatus {
 export type DealStatusMirror =
   | { draft: EmptyAnchorEnum }
   | { funded: EmptyAnchorEnum }
-  | { active: EmptyAnchorEnum }
+  | { inProgress: EmptyAnchorEnum }
   | { completed: EmptyAnchorEnum }
   | { cancelled: EmptyAnchorEnum };
 
 export enum MilestoneStatus {
   PendingEvidence = "pendingEvidence",
-  UnderReview = "underReview",
-  Approved = "approved",
-  Rejected = "rejected",
-  Released = "released",
+  EvidenceSubmitted = "evidenceSubmitted",
+  OnHold = "onHold",
+  PaidFull = "paidFull",
+  Resolved = "resolved",
+  Refunded = "refunded",
 }
 
 export type MilestoneStatusMirror =
   | { pendingEvidence: EmptyAnchorEnum }
-  | { underReview: EmptyAnchorEnum }
-  | { approved: EmptyAnchorEnum }
-  | { rejected: EmptyAnchorEnum }
-  | { released: EmptyAnchorEnum };
+  | { evidenceSubmitted: EmptyAnchorEnum }
+  | { onHold: EmptyAnchorEnum }
+  | { paidFull: EmptyAnchorEnum }
+  | { resolved: EmptyAnchorEnum }
+  | { refunded: EmptyAnchorEnum };
 
 export enum AssessmentDecision {
   Approve = "approve",

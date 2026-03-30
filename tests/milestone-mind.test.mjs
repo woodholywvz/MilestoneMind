@@ -20,33 +20,63 @@ const MILESTONE_SEED = Buffer.from("milestone");
 const VAULT_SEED = Buffer.from("vault");
 const MOCK_USDC_DECIMALS = 6;
 
-function u64Le(value: number | bigint): Buffer {
+function u64Le(value) {
   const buffer = Buffer.alloc(8);
   buffer.writeBigUInt64LE(BigInt(value));
   return buffer;
 }
 
-function u16Le(value: number): Buffer {
+function u16Le(value) {
   const buffer = Buffer.alloc(2);
   buffer.writeUInt16LE(value);
   return buffer;
 }
 
-function enumKey(value: Record<string, unknown>): string {
+function enumKey(value) {
   return Object.keys(value)[0] ?? "";
+}
+
+function hexToEvidenceHash(hex) {
+  const normalized = hex.trim().toLowerCase().replace(/^0x/, "");
+
+  if (normalized.length !== 64) {
+    throw new Error("Evidence hash must be 64 hex characters.");
+  }
+
+  return Uint8Array.from(
+    normalized.match(/.{2}/g).map((pair) => Number.parseInt(pair, 16)),
+  );
+}
+
+function evidenceHashToHex(hash) {
+  return Array.from(hash, (value) => value.toString(16).padStart(2, "0")).join("");
+}
+
+async function airdropLamports(connection, recipient, lamports) {
+  const signature = await connection.requestAirdrop(recipient, lamports);
+  const latestBlockhash = await connection.getLatestBlockhash();
+
+  await connection.confirmTransaction(
+    {
+      signature,
+      blockhash: latestBlockhash.blockhash,
+      lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+    },
+    "confirmed",
+  );
 }
 
 test("milestone_mind happy path", async (t) => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
 
-  const program = anchor.workspace.MilestoneMind as anchor.Program<anchor.Idl>;
-  const wallet = provider.wallet as anchor.Wallet & { payer: web3.Keypair };
+  const program = anchor.workspace.MilestoneMind;
+  const wallet = provider.wallet;
   const payer = wallet.payer;
   const client = wallet;
   const admin = wallet.publicKey;
+  const freelancer = web3.Keypair.generate();
   const assessor = web3.Keypair.generate().publicKey;
-  const freelancer = web3.Keypair.generate().publicKey;
   const dealTitle = "Launch landing page";
   const milestoneTitles = [
     "Draft wireframes",
@@ -63,6 +93,16 @@ test("milestone_mind happy path", async (t) => {
     new anchor.BN(0),
   );
   const clientStartingBalance = BigInt(20_000_000);
+  const evidencePayload = {
+    evidenceUri: "ipfs://milestonemind/mock-proof-001",
+    evidenceHashHex: "ab".repeat(32),
+    evidenceSummary: "Implemented the first responsive milestone deliverable.",
+    attachmentCount: 2,
+  };
+  const evidenceHash = hexToEvidenceHash(evidencePayload.evidenceHashHex);
+
+  await airdropLamports(provider.connection, freelancer.publicKey, web3.LAMPORTS_PER_SOL);
+
   const usdcMint = await createMint(
     provider.connection,
     payer,
@@ -124,7 +164,7 @@ test("milestone_mind happy path", async (t) => {
   );
 
   await program.methods
-    .createDeal(freelancer, dealTitle, milestoneTitles.length, totalAmount)
+    .createDeal(freelancer.publicKey, dealTitle, milestoneTitles.length, totalAmount)
     .accounts({
       platform: platformPda,
       client: client.publicKey,
@@ -140,7 +180,7 @@ test("milestone_mind happy path", async (t) => {
     assert.equal(platform.nextDealId.toNumber(), 1);
     assert.equal(deal.dealId.toNumber(), 0);
     assert.equal(deal.client.toBase58(), client.publicKey.toBase58());
-    assert.equal(deal.freelancer.toBase58(), freelancer.toBase58());
+    assert.equal(deal.freelancer.toBase58(), freelancer.publicKey.toBase58());
     assert.equal(deal.mint.toBase58(), usdcMint.toBase58());
     assert.equal(deal.totalAmount.toString(), totalAmount.toString());
     assert.equal(deal.fundedAmount.toNumber(), 0);
@@ -261,10 +301,7 @@ test("milestone_mind happy path", async (t) => {
       provider.connection,
       clientTokenAccount,
     )).amount;
-    const vaultBalanceAfter = (await getAccount(
-      provider.connection,
-      vaultTokenAccount,
-    ));
+    const vaultBalanceAfter = await getAccount(provider.connection, vaultTokenAccount);
     const deal = await program.account.deal.fetch(dealPda);
 
     assert.equal(
@@ -275,5 +312,106 @@ test("milestone_mind happy path", async (t) => {
     assert.equal(vaultBalanceAfter.owner.toBase58(), vaultAuthorityPda.toBase58());
     assert.equal(enumKey(deal.status), "funded");
     assert.equal(deal.fundedAmount.toString(), totalAmount.toString());
+  });
+
+  await t.test("submit_evidence succeeds and moves the deal into progress", async () => {
+    await program.methods
+      .submitEvidence(
+        0,
+        evidencePayload.evidenceUri,
+        Array.from(evidenceHash),
+        evidencePayload.evidenceSummary,
+        evidencePayload.attachmentCount,
+      )
+      .accounts({
+        freelancer: freelancer.publicKey,
+        deal: dealPda,
+        milestone: milestonePdas[0],
+      })
+      .signers([freelancer])
+      .rpc();
+
+    const deal = await program.account.deal.fetch(dealPda);
+    const milestone = await program.account.milestone.fetch(milestonePdas[0]);
+
+    assert.equal(enumKey(deal.status), "inProgress");
+    assert.equal(enumKey(milestone.status), "evidenceSubmitted");
+    assert.equal(milestone.evidenceUri, evidencePayload.evidenceUri);
+    assert.equal(
+      evidenceHashToHex(milestone.evidenceHash),
+      evidencePayload.evidenceHashHex,
+    );
+    assert.equal(milestone.evidenceSummary, evidencePayload.evidenceSummary);
+    assert.equal(milestone.attachmentCount, evidencePayload.attachmentCount);
+    assert.ok(milestone.lastSubmittedAt.gt(new anchor.BN(0)));
+  });
+
+  await t.test("only freelancer can submit evidence", async () => {
+    await assert.rejects(
+      program.methods
+        .submitEvidence(
+          1,
+          "ipfs://milestonemind/mock-proof-002",
+          Array.from(hexToEvidenceHash("cd".repeat(32))),
+          "Attempted submission by the wrong actor.",
+          1,
+        )
+        .accounts({
+          freelancer: client.publicKey,
+          deal: dealPda,
+          milestone: milestonePdas[1],
+        })
+        .rpc(),
+    );
+  });
+
+  await t.test("cannot submit evidence before deal funding", async () => {
+    const [unfundedDealPda] = web3.PublicKey.findProgramAddressSync(
+      [DEAL_SEED, u64Le(1)],
+      program.programId,
+    );
+
+    await program.methods
+      .createDeal(freelancer.publicKey, "Unfunded design sprint", 1, new anchor.BN(1_000_000))
+      .accounts({
+        platform: platformPda,
+        client: client.publicKey,
+        deal: unfundedDealPda,
+        systemProgram: web3.SystemProgram.programId,
+      })
+      .rpc();
+
+    const [unfundedMilestonePda] = web3.PublicKey.findProgramAddressSync(
+      [MILESTONE_SEED, unfundedDealPda.toBuffer(), u16Le(0)],
+      program.programId,
+    );
+
+    await program.methods
+      .createMilestone(0, "Unfunded milestone", new anchor.BN(1_000_000))
+      .accounts({
+        client: client.publicKey,
+        deal: unfundedDealPda,
+        milestone: unfundedMilestonePda,
+        systemProgram: web3.SystemProgram.programId,
+      })
+      .rpc();
+
+    await assert.rejects(
+      program.methods
+        .submitEvidence(
+          0,
+          "ipfs://milestonemind/unfunded",
+          Array.from(hexToEvidenceHash("ef".repeat(32))),
+          "This should be rejected before funding.",
+          1,
+        )
+        .accounts({
+          freelancer: freelancer.publicKey,
+          deal: unfundedDealPda,
+          milestone: unfundedMilestonePda,
+        })
+        .signers([freelancer])
+        .rpc(),
+    );
   });
 });

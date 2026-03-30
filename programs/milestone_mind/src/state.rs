@@ -117,7 +117,7 @@ impl Assessment {
 pub enum DealStatus {
     Draft,
     Funded,
-    Active,
+    InProgress,
     Completed,
     Cancelled,
 }
@@ -125,10 +125,11 @@ pub enum DealStatus {
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MilestoneStatus {
     PendingEvidence,
-    UnderReview,
-    Approved,
-    Rejected,
-    Released,
+    EvidenceSubmitted,
+    OnHold,
+    PaidFull,
+    Resolved,
+    Refunded,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Debug, PartialEq, Eq)]

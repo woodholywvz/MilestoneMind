@@ -13,4 +13,4 @@ cluster = "Localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-test = "node --import tsx --test tests/milestone-mind.test.ts"
+test = "node --test tests/milestone-mind.test.mjs"

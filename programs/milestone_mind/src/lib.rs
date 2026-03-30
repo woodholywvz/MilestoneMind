@@ -5,7 +5,7 @@ pub mod errors;
 pub mod instructions;
 pub mod state;
 
-use instructions::{CreateDeal, CreateMilestone, FundDeal, InitializePlatform};
+use instructions::{CreateDeal, CreateMilestone, FundDeal, InitializePlatform, SubmitEvidence};
 
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkgMQHG7d43x");
 
@@ -43,5 +43,23 @@ pub mod milestone_mind {
 
     pub fn fund_deal(ctx: Context<FundDeal>) -> Result<()> {
         instructions::fund_deal::handler(ctx)
+    }
+
+    pub fn submit_evidence(
+        ctx: Context<SubmitEvidence>,
+        milestone_index: u16,
+        evidence_uri: String,
+        evidence_hash: [u8; 32],
+        evidence_summary: String,
+        attachment_count: u16,
+    ) -> Result<()> {
+        instructions::submit_evidence::handler(
+            ctx,
+            milestone_index,
+            evidence_uri,
+            evidence_hash,
+            evidence_summary,
+            attachment_count,
+        )
     }
 }
