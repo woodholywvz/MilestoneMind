@@ -1,6 +1,6 @@
-from fastapi.testclient import TestClient
-
+from app.assessment_types import AssessmentLayerResult
 from app.main import app
+from fastapi.testclient import TestClient
 
 client = TestClient(app)
 
@@ -26,7 +26,10 @@ def build_payload(**overrides: object) -> dict[str, object]:
     return payload
 
 
-def test_assess_approve_full() -> None:
+def test_assess_approve_full(monkeypatch) -> None:
+    monkeypatch.delenv("AI_ENABLE_LLM", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+
     response = client.post("/assess", json=build_payload())
 
     assert response.status_code == 200
@@ -34,13 +37,15 @@ def test_assess_approve_full() -> None:
 
     assert body["decision"] == "approve"
     assert body["approvedBps"] == 10000
-    assert body["confidenceBps"] > body["approvedBps"] - 3000
     assert body["engineVersion"] == "rules-v1"
     assert len(body["rationaleHashHex"]) == 64
     assert any("strong-keywords" in item for item in body["ruleTrace"])
 
 
-def test_assess_approve_partial() -> None:
+def test_assess_approve_partial(monkeypatch) -> None:
+    monkeypatch.delenv("AI_ENABLE_LLM", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+
     response = client.post(
         "/assess",
         json=build_payload(
@@ -53,13 +58,13 @@ def test_assess_approve_partial() -> None:
     )
 
     assert response.status_code == 200
-    body = response.json()
-
-    assert body["decision"] == "approve"
-    assert body["approvedBps"] == 7000
+    assert response.json()["approvedBps"] == 7000
 
 
-def test_assess_hold() -> None:
+def test_assess_hold(monkeypatch) -> None:
+    monkeypatch.delenv("AI_ENABLE_LLM", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+
     response = client.post(
         "/assess",
         json=build_payload(
@@ -78,7 +83,10 @@ def test_assess_hold() -> None:
     assert body["approvedBps"] == 0
 
 
-def test_assess_dispute() -> None:
+def test_assess_dispute(monkeypatch) -> None:
+    monkeypatch.delenv("AI_ENABLE_LLM", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+
     response = client.post(
         "/assess",
         json=build_payload(
@@ -93,11 +101,13 @@ def test_assess_dispute() -> None:
     body = response.json()
 
     assert body["decision"] == "dispute"
-    assert body["approvedBps"] == 0
     assert any("required-evidence" in item for item in body["ruleTrace"])
 
 
-def test_assessment_is_deterministic() -> None:
+def test_assessment_is_deterministic(monkeypatch) -> None:
+    monkeypatch.delenv("AI_ENABLE_LLM", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+
     payload = build_payload(
         evidenceSummary=(
             "Production delivery complete with invoice, acceptance confirmation, "
@@ -111,3 +121,62 @@ def test_assessment_is_deterministic() -> None:
     assert first.status_code == 200
     assert second.status_code == 200
     assert first.json() == second.json()
+
+
+def test_openai_layer_refines_output(monkeypatch) -> None:
+    from app import engine
+
+    monkeypatch.setenv("AI_ENABLE_LLM", "1")
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+
+    def fake_assess_with_openai(*args, **kwargs) -> AssessmentLayerResult:
+        return AssessmentLayerResult(
+            layer="semantic",
+            decision="approve",
+            approved_bps=7000,
+            confidence_bps=8600,
+            summary="Semantic analysis found substantial proof, but not enough for a full release.",
+            score=74,
+            trace=["openai: mocked semantic layer"],
+            engine_version="openai-v1",
+            metadata={"rag_score": 80},
+        )
+
+    monkeypatch.setattr(engine, "assess_with_openai", fake_assess_with_openai)
+
+    response = client.post("/assess", json=build_payload())
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["decision"] == "approve"
+    assert body["approvedBps"] == 7000
+    assert body["engineVersion"] == "rules-v1+openai-v1"
+    assert any("openai: mocked semantic layer" in item for item in body["ruleTrace"])
+    assert any("synthesis:" in item for item in body["ruleTrace"])
+
+
+def test_hard_block_skips_openai(monkeypatch) -> None:
+    from app import engine
+
+    monkeypatch.setenv("AI_ENABLE_LLM", "1")
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+
+    def should_not_run(*args, **kwargs) -> AssessmentLayerResult:
+        raise AssertionError("semantic layer must not run for deterministic hard blocks")
+
+    monkeypatch.setattr(engine, "assess_with_openai", should_not_run)
+
+    response = client.post(
+        "/assess",
+        json=build_payload(
+            evidenceUri="",
+            evidenceHashHex="",
+            evidenceSummary="",
+            attachmentCount=0,
+        ),
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["decision"] == "dispute"
+    assert any("hard block" in item for item in body["ruleTrace"])

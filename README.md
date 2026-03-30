@@ -47,7 +47,26 @@ AI environment variables:
 - `AI_HOST`
 - `AI_PORT`
 - `AI_ASSESSMENT_ENGINE_VERSION` default `rules-v1`
-- `AI_ENABLE_LLM` reserved for future optional paths; default `0`
+- `AI_ENABLE_LLM` enables the semantic OpenAI layer; default `0`
+- `OPENAI_API_KEY`
+- `OPENAI_BASE_URL` optional override
+- `AI_OPENAI_MODEL` default `gpt-5.4-mini`
+- `AI_OPENAI_EMBEDDING_MODEL` default `text-embedding-3-small`
+- `AI_OPENAI_REASONING_EFFORT` default `medium`
+- `AI_OPENAI_TIMEOUT_SECONDS` default `45`
+- `AI_RAG_TOP_K` default `4`
+- `AI_MAX_ATTACHMENT_BYTES` default `2000000`
+- `AI_IPFS_GATEWAY` default `https://ipfs.io/ipfs/`
+
+Assessment pipeline:
+
+1. Deterministic rules engine always runs first.
+2. If `AI_ENABLE_LLM=1` and `OPENAI_API_KEY` is set, the service runs a semantic OpenAI assessor on top.
+3. The semantic layer uses:
+   - `gpt-5.4-mini` for structured semantic assessment
+   - `text-embedding-3-small` for rubric retrieval / embedding similarity
+   - attachment ingestion for image, PDF, and text-like evidence URIs
+4. Final output is synthesized conservatively, so deterministic guardrails remain in force.
 
 Sample assessment request:
 
@@ -86,6 +105,15 @@ Sample assessment response:
   ],
   "engineVersion": "rules-v1"
 }
+```
+
+To enable the semantic layer locally:
+
+```bash
+AI_ENABLE_LLM=1
+OPENAI_API_KEY=your_key_here
+AI_OPENAI_MODEL=gpt-5.4-mini
+AI_OPENAI_EMBEDDING_MODEL=text-embedding-3-small
 ```
 
 ## Local validator
