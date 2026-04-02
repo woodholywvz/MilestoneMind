@@ -265,6 +265,32 @@ Release outcomes:
 
 `PaidPartial` means the approved portion was paid out to the freelancer, while the remainder stays in the deal vault for later dispute handling or manual resolution. This commit does not finalize the deal or close vault accounts automatically.
 
+Dispute flow:
+
+1. `open_dispute()` can be called by the `client` or the `freelancer`.
+2. Allowed milestone statuses for `open_dispute()`:
+   - `Approved`
+   - `OnHold`
+   - `PaidPartial`
+3. `open_dispute()` moves the milestone to `InDispute` and the deal to `Disputed`.
+4. `resolve_dispute()` can be called only by `platform.admin`.
+5. Settlement is applied only to the unpaid remainder of the milestone.
+
+Settlement math:
+
+```text
+remaining = milestone.amount - milestone.released_amount
+freelancer_amount = remaining * freelancer_split_bps / 10000
+client_amount = remaining - freelancer_amount
+```
+
+Settlement outcomes:
+
+- if `freelancer_amount == 0` and `milestone.released_amount == 0` before settlement -> `milestone.status = Refunded`
+- otherwise -> `milestone.status = Resolved`
+
+`resolve_dispute()` auto-creates ATA accounts for both the freelancer and the client when needed. The freelancer transfer increases `milestone.released_amount`; the client refund does not.
+
 ## Root scripts
 
 ```bash

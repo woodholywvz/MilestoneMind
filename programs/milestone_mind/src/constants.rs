@@ -18,4 +18,5 @@ pub const MAX_TITLE_LEN: usize = 80;
 pub const MAX_EVIDENCE_URI_LEN: usize = 256;
 pub const MAX_EVIDENCE_SUMMARY_LEN: usize = 280;
 pub const MAX_ASSESSMENT_SUMMARY_LEN: usize = 280;
+pub const MAX_DISPUTE_REASON_LEN: usize = 280;
 pub const MOCK_USDC_DECIMALS: u8 = 6;

@@ -6,8 +6,8 @@ pub mod instructions;
 pub mod state;
 
 use instructions::{
-    CreateDeal, CreateMilestone, FundDeal, InitializePlatform, ReleaseApprovedFunds,
-    SubmitAssessment, SubmitEvidence,
+    CreateDeal, CreateMilestone, FundDeal, InitializePlatform, OpenDispute,
+    ReleaseApprovedFunds, ResolveDispute, SubmitAssessment, SubmitEvidence,
 };
 
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkgMQHG7d43x");
@@ -91,5 +91,21 @@ pub mod milestone_mind {
         milestone_index: u16,
     ) -> Result<()> {
         instructions::release_approved_funds::handler(ctx, milestone_index)
+    }
+
+    pub fn open_dispute(
+        ctx: Context<OpenDispute>,
+        milestone_index: u16,
+        reason: String,
+    ) -> Result<()> {
+        instructions::open_dispute::handler(ctx, milestone_index, reason)
+    }
+
+    pub fn resolve_dispute(
+        ctx: Context<ResolveDispute>,
+        milestone_index: u16,
+        freelancer_split_bps: u16,
+    ) -> Result<()> {
+        instructions::resolve_dispute::handler(ctx, milestone_index, freelancer_split_bps)
     }
 }

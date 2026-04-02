@@ -318,6 +318,57 @@ test("milestone_mind happy path", async (t) => {
       .rpc();
   }
 
+  async function openDisputeForMilestone(
+    index,
+    reason,
+    caller = client.publicKey,
+    signers = [],
+    deal = dealPda,
+    milestone = milestonePdas[index],
+  ) {
+    await program.methods
+      .openDispute(index, reason)
+      .accounts({
+        caller,
+        deal,
+        milestone,
+      })
+      .signers(signers)
+      .rpc();
+  }
+
+  async function resolveDisputeForMilestone(
+    index,
+    freelancerSplitBps,
+    adminSigner = client.publicKey,
+    signers = [],
+    deal = dealPda,
+    milestone = milestonePdas[index],
+    vaultAuthority = vaultAuthorityPda,
+    vaultToken = vaultTokenAccount,
+  ) {
+    await program.methods
+      .resolveDispute(index, freelancerSplitBps)
+      .accounts({
+        platform: platformPda,
+        deal,
+        admin: adminSigner,
+        milestone,
+        mint: usdcMint,
+        vaultAuthority,
+        vaultTokenAccount: vaultToken,
+        freelancer: freelancer.publicKey,
+        freelancerTokenAccount,
+        client: client.publicKey,
+        clientTokenAccount,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: web3.SystemProgram.programId,
+      })
+      .signers(signers)
+      .rpc();
+  }
+
   for (const [index, milestoneTitle] of milestoneTitles.entries()) {
     await program.methods
       .createMilestone(index, milestoneTitle, milestoneAmounts[index])
@@ -789,6 +840,170 @@ test("milestone_mind happy path", async (t) => {
         .signers([assessor])
         .rpc(),
     );
+  });
+
+  await t.test("resolve only from InDispute", async () => {
+    await assert.rejects(
+      resolveDisputeForMilestone(0, 5_000),
+    );
+  });
+
+  await t.test("open dispute by client works for PaidPartial milestone", async () => {
+    await openDisputeForMilestone(
+      0,
+      "Client disputes the remaining payout after partial release.",
+    );
+
+    const deal = await program.account.deal.fetch(dealPda);
+    const milestone = await program.account.milestone.fetch(milestonePdas[0]);
+
+    assert.equal(enumKey(deal.status), "disputed");
+    assert.equal(enumKey(milestone.status), "inDispute");
+  });
+
+  await t.test("resolve by admin with 50 split settles the remaining amount", async () => {
+    const clientBalanceBefore = (await getAccount(
+      provider.connection,
+      clientTokenAccount,
+    )).amount;
+    const freelancerBalanceBefore = (await getAccount(
+      provider.connection,
+      freelancerTokenAccount,
+    )).amount;
+    const vaultBalanceBefore = (await getAccount(
+      provider.connection,
+      vaultTokenAccount,
+    )).amount;
+
+    await resolveDisputeForMilestone(0, 5_000);
+
+    const milestone = await program.account.milestone.fetch(milestonePdas[0]);
+    const clientBalanceAfter = (await getAccount(
+      provider.connection,
+      clientTokenAccount,
+    )).amount;
+    const freelancerBalanceAfter = (await getAccount(
+      provider.connection,
+      freelancerTokenAccount,
+    )).amount;
+    const vaultBalanceAfter = (await getAccount(
+      provider.connection,
+      vaultTokenAccount,
+    )).amount;
+    const freelancerSettlementAmount = BigInt(300_000);
+    const clientSettlementAmount = BigInt(300_000);
+
+    assert.equal(enumKey(milestone.status), "resolved");
+    assert.equal(milestone.releasedAmount.toString(), "1700000");
+    assert.equal(
+      freelancerBalanceAfter,
+      freelancerBalanceBefore + freelancerSettlementAmount,
+    );
+    assert.equal(clientBalanceAfter, clientBalanceBefore + clientSettlementAmount);
+    assert.equal(
+      vaultBalanceAfter,
+      vaultBalanceBefore - freelancerSettlementAmount - clientSettlementAmount,
+    );
+  });
+
+  await t.test("open dispute by freelancer works for OnHold milestone", async () => {
+    await openDisputeForMilestone(
+      1,
+      "Freelancer wants admin review on the held milestone.",
+      freelancer.publicKey,
+      [freelancer],
+    );
+
+    const milestone = await program.account.milestone.fetch(milestonePdas[1]);
+
+    assert.equal(enumKey(milestone.status), "inDispute");
+  });
+
+  await t.test("unauthorized admin resolve fails", async () => {
+    await assert.rejects(
+      resolveDisputeForMilestone(
+        1,
+        0,
+        assessor.publicKey,
+        [assessor],
+      ),
+    );
+  });
+
+  await t.test("resolve by admin with 0 split refunds the remaining amount to client", async () => {
+    const clientBalanceBefore = (await getAccount(
+      provider.connection,
+      clientTokenAccount,
+    )).amount;
+    const freelancerBalanceBefore = (await getAccount(
+      provider.connection,
+      freelancerTokenAccount,
+    )).amount;
+    const vaultBalanceBefore = (await getAccount(
+      provider.connection,
+      vaultTokenAccount,
+    )).amount;
+
+    await resolveDisputeForMilestone(1, 0);
+
+    const milestone = await program.account.milestone.fetch(milestonePdas[1]);
+    const clientBalanceAfter = (await getAccount(
+      provider.connection,
+      clientTokenAccount,
+    )).amount;
+    const freelancerBalanceAfter = (await getAccount(
+      provider.connection,
+      freelancerTokenAccount,
+    )).amount;
+    const vaultBalanceAfter = (await getAccount(
+      provider.connection,
+      vaultTokenAccount,
+    )).amount;
+    const refundedAmount = BigInt(milestoneAmounts[1].toString());
+
+    assert.equal(enumKey(milestone.status), "refunded");
+    assert.equal(milestone.releasedAmount.toNumber(), 0);
+    assert.equal(clientBalanceAfter, clientBalanceBefore + refundedAmount);
+    assert.equal(freelancerBalanceAfter, freelancerBalanceBefore);
+    assert.equal(vaultBalanceAfter, vaultBalanceBefore - refundedAmount);
+  });
+
+  await t.test("resolve by admin with 100 split pays freelancer the full remaining disputed amount", async () => {
+    const clientBalanceBefore = (await getAccount(
+      provider.connection,
+      clientTokenAccount,
+    )).amount;
+    const freelancerBalanceBefore = (await getAccount(
+      provider.connection,
+      freelancerTokenAccount,
+    )).amount;
+    const vaultBalanceBefore = (await getAccount(
+      provider.connection,
+      vaultTokenAccount,
+    )).amount;
+
+    await resolveDisputeForMilestone(2, 10_000);
+
+    const milestone = await program.account.milestone.fetch(milestonePdas[2]);
+    const clientBalanceAfter = (await getAccount(
+      provider.connection,
+      clientTokenAccount,
+    )).amount;
+    const freelancerBalanceAfter = (await getAccount(
+      provider.connection,
+      freelancerTokenAccount,
+    )).amount;
+    const vaultBalanceAfter = (await getAccount(
+      provider.connection,
+      vaultTokenAccount,
+    )).amount;
+    const settlementAmount = BigInt(milestoneAmounts[2].toString());
+
+    assert.equal(enumKey(milestone.status), "resolved");
+    assert.equal(milestone.releasedAmount.toString(), milestoneAmounts[2].toString());
+    assert.equal(clientBalanceAfter, clientBalanceBefore);
+    assert.equal(freelancerBalanceAfter, freelancerBalanceBefore + settlementAmount);
+    assert.equal(vaultBalanceAfter, vaultBalanceBefore - settlementAmount);
   });
 
   await t.test("cannot submit evidence before deal funding", async () => {

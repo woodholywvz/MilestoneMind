@@ -8,8 +8,12 @@ pub enum MilestoneMindError {
     UnauthorizedFreelancer,
     #[msg("Only the whitelisted assessor may perform this action.")]
     UnauthorizedAssessor,
+    #[msg("Only the deal client or assigned freelancer may perform this action.")]
+    UnauthorizedDisputeCaller,
     #[msg("Only the deal client or whitelisted assessor may perform this action.")]
     UnauthorizedReleaseCaller,
+    #[msg("Only the platform admin may perform this action.")]
+    UnauthorizedAdmin,
     #[msg("The provided title exceeds the maximum allowed length.")]
     TitleTooLong,
     #[msg("The provided evidence URI exceeds the maximum allowed length.")]
@@ -24,6 +28,10 @@ pub enum MilestoneMindError {
     AssessmentSummaryTooLong,
     #[msg("Assessment summary cannot be empty.")]
     EmptyAssessmentSummary,
+    #[msg("Dispute reason cannot be empty.")]
+    EmptyDisputeReason,
+    #[msg("The provided dispute reason exceeds the maximum allowed length.")]
+    DisputeReasonTooLong,
     #[msg("Milestone count must be greater than zero.")]
     InvalidMilestoneCount,
     #[msg("Milestone index is outside the declared milestone count.")]
@@ -52,10 +60,20 @@ pub enum MilestoneMindError {
     InvalidReleaseDealStatus,
     #[msg("The milestone is not in a status that allows release.")]
     InvalidReleaseMilestoneStatus,
+    #[msg("The deal is not in a status that allows opening a dispute.")]
+    InvalidDisputeDealStatus,
+    #[msg("The milestone is not in a status that allows opening a dispute.")]
+    InvalidDisputeMilestoneStatus,
+    #[msg("The deal is not in a status that allows dispute resolution.")]
+    InvalidResolveDealStatus,
+    #[msg("The milestone is not in a status that allows dispute resolution.")]
+    InvalidResolveMilestoneStatus,
     #[msg("Confidence basis points must be between 0 and 10000.")]
     InvalidConfidenceBps,
     #[msg("Approved basis points must be between 0 and 10000.")]
     InvalidApprovedBps,
+    #[msg("Freelancer split basis points must be between 0 and 10000.")]
+    InvalidFreelancerSplitBps,
     #[msg("Approve decisions require approved basis points greater than zero.")]
     ApproveRequiresPositiveApprovedBps,
     #[msg("Hold and dispute decisions require approved basis points to be zero.")]
@@ -68,6 +86,8 @@ pub enum MilestoneMindError {
     AssessmentMilestoneMismatch,
     #[msg("The computed release amount must be greater than zero.")]
     InvalidReleaseAmount,
+    #[msg("The milestone has no remaining amount left to settle.")]
+    NoRemainingSettlement,
     #[msg("The client token account does not have enough balance to fund this deal.")]
     InsufficientClientBalance,
     #[msg("The vault token account does not have enough balance for this release.")]
