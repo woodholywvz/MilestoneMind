@@ -125,6 +125,8 @@ mod tests {
 
     #[test]
     fn rejects_submission_after_terminal_statuses() {
+        assert!(!can_submit_for_milestone_status(MilestoneStatus::Approved));
+        assert!(!can_submit_for_milestone_status(MilestoneStatus::InDispute));
         assert!(!can_submit_for_milestone_status(MilestoneStatus::PaidFull));
         assert!(!can_submit_for_milestone_status(MilestoneStatus::Resolved));
         assert!(!can_submit_for_milestone_status(MilestoneStatus::Refunded));

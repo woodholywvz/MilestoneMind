@@ -4,7 +4,10 @@ import anchor from "@coral-xyz/anchor";
 import { PublicKey } from "@solana/web3.js";
 import { deriveDealPda } from "../dist/anchor/pdas.js";
 import { buildAssessRequest, parseAiAssessmentResponse } from "../dist/lib/payload.js";
-import { performDryAssessment } from "../dist/lib/assessment.js";
+import {
+  performCommitAssessment,
+  performDryAssessment,
+} from "../dist/lib/assessment.js";
 
 const { BN } = anchor;
 
@@ -136,4 +139,74 @@ test("mock AI response parsing test", () => {
   assert.equal(response.decision, "approve");
   assert.equal(response.approvedBps, 7000);
   assert.equal(response.ruleTrace.length, 2);
+});
+
+test("commit mode submits on-chain assessment and returns the final milestone status", async () => {
+  const programId = new PublicKey("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkgMQHG7d43x");
+  const assessor = new PublicKey("HfN7bL6J6Ex35tqZQxwcN8B4p5szY5n1yYqKqRR3YKHy");
+  const dealPublicKey = deriveDealPda(0, programId).publicKey;
+  let milestoneFetchCount = 0;
+  let submittedDecisionKey = null;
+
+  const result = await performCommitAssessment(
+    { dealId: 0, milestoneIndex: 0 },
+    {
+      config: {
+        executorHost: "127.0.0.1",
+        executorPort: 8080,
+        solanaRpcUrl: "http://127.0.0.1:8899",
+        executorWalletPath: "C:/tmp/id.json",
+        aiServiceBaseUrl: "http://127.0.0.1:8000",
+        programId,
+      },
+      anchorClient: {
+        programId,
+        walletPublicKey: assessor,
+        async fetchPlatformConfig() {
+          return {
+            admin: assessor,
+            assessor,
+            usdcMint: assessor,
+            nextDealId: new BN(1),
+            bump: 255,
+          };
+        },
+        async fetchDeal() {
+          return { ...buildDeal(), status: dealStatus("inProgress"), client: dealPublicKey };
+        },
+        async fetchMilestone() {
+          milestoneFetchCount += 1;
+          if (milestoneFetchCount === 1) {
+            return { ...buildMilestone("evidenceSubmitted"), deal: dealPublicKey };
+          }
+
+          return { ...buildMilestone("approved"), deal: dealPublicKey };
+        },
+        async submitAssessment(args) {
+          submittedDecisionKey = Object.keys(args.decision)[0];
+          assert.equal(args.confidenceBps, 9100);
+          assert.equal(args.approvedBps, 7000);
+          assert.equal(args.summary, "Evidence is credible and sufficient for a partial approval.");
+          assert.equal(args.rationaleHash.length, 32);
+          return "mock-signature-123";
+        },
+      },
+      async requestAiAssessment() {
+        return {
+          decision: "approve",
+          confidenceBps: 9100,
+          approvedBps: 7000,
+          summary: "Evidence is credible and sufficient for a partial approval.",
+          rationaleHashHex: "ab".repeat(32),
+          ruleTrace: ["engine: rules-v1", "decision: approve"],
+          engineVersion: "rules-v1+openai-v1",
+        };
+      },
+    },
+  );
+
+  assert.equal(submittedDecisionKey, "approve");
+  assert.equal(result.txSignature, "mock-signature-123");
+  assert.equal(result.milestoneStatus, "approved");
+  assert.equal(result.assessment.decision, "approve");
 });

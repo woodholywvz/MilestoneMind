@@ -1,15 +1,15 @@
 import { AnchorProvider, Program, Wallet } from "@coral-xyz/anchor";
-import type { Idl } from "@coral-xyz/anchor";
-import { Connection, type PublicKey } from "@solana/web3.js";
+import { Connection, SystemProgram, type PublicKey } from "@solana/web3.js";
 import type { ExecutorConfig } from "../env/config.js";
 import { loadKeypairFromPath } from "../env/wallet.js";
+import type { AssessmentDecisionMirror } from "@milestone-mind/shared";
 import type {
   AssessmentAccount,
   DealAccount,
   MilestoneAccount,
   PlatformConfigAccount,
 } from "./types.js";
-import { milestoneMindIdl } from "./idl.js";
+import { milestoneMindIdl, type MilestoneMindIdl } from "./idl.js";
 import {
   deriveAssessmentPda,
   deriveDealPda,
@@ -25,7 +25,7 @@ type FetchableAccountClient = {
 export class MilestoneMindAnchorClient {
   readonly connection: Connection;
   readonly provider: AnchorProvider;
-  readonly program: Program<Idl>;
+  readonly program: Program<MilestoneMindIdl>;
 
   constructor(readonly config: ExecutorConfig) {
     const keypair = loadKeypairFromPath(config.executorWalletPath);
@@ -46,6 +46,10 @@ export class MilestoneMindAnchorClient {
 
   get programId(): PublicKey {
     return this.program.programId;
+  }
+
+  get walletPublicKey(): PublicKey {
+    return this.provider.wallet.publicKey;
   }
 
   async fetchPlatformConfig(address = derivePlatformPda(this.programId).publicKey) {
@@ -88,6 +92,60 @@ export class MilestoneMindAnchorClient {
         derived.publicKey,
       ),
     };
+  }
+
+  async submitAssessment(input: {
+    platform: PublicKey;
+    deal: PublicKey;
+    milestone: PublicKey;
+    assessment: PublicKey;
+    milestoneIndex: number;
+    decision: AssessmentDecisionMirror;
+    confidenceBps: number;
+    approvedBps: number;
+    rationaleHash: number[];
+    summary: string;
+  }): Promise<string> {
+    const methods = this.program.methods as unknown as {
+      submitAssessment(
+        milestoneIndex: number,
+        decision: AssessmentDecisionMirror,
+        confidenceBps: number,
+        approvedBps: number,
+        rationaleHash: number[],
+        summary: string,
+      ): {
+        accounts(accounts: {
+          platform: PublicKey;
+          assessor: PublicKey;
+          deal: PublicKey;
+          milestone: PublicKey;
+          assessment: PublicKey;
+          systemProgram: PublicKey;
+        }): {
+          rpc(): Promise<string>;
+        };
+      };
+    };
+
+    return methods
+      .submitAssessment(
+        input.milestoneIndex,
+        input.decision,
+        input.confidenceBps,
+        input.approvedBps,
+        input.rationaleHash,
+        input.summary,
+      )
+      .accounts({
+        platform: input.platform,
+        assessor: this.walletPublicKey,
+        deal: input.deal,
+        milestone: input.milestone,
+        assessment: input.assessment,
+        systemProgram: SystemProgram.programId,
+      })
+      .rpc();
   }
 
   private async fetchAccount<T>(name: string, address: PublicKey): Promise<T> {

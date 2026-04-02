@@ -2,16 +2,24 @@ import type { BN } from "@coral-xyz/anchor";
 import {
   assessRequestSchema,
   assessResponseSchema,
+  AssessmentDecision,
+  type AssessmentDecisionMirror,
   DealStatus,
   type DealStatusMirror,
+  hexToEvidenceHash,
   evidenceHashToHex,
   MilestoneStatus,
   type MilestoneStatusMirror,
+  type ServiceAssessmentDecision,
 } from "@milestone-mind/shared";
 import type { PublicKey } from "@solana/web3.js";
 import { z } from "zod";
 import type { DealAccount, MilestoneAccount } from "../anchor/types.js";
-import { InvalidExecutorInputError, MilestoneNotReadyError } from "./errors.js";
+import {
+  DealNotReadyForAssessmentError,
+  InvalidExecutorInputError,
+  MilestoneNotReadyError,
+} from "./errors.js";
 
 export const dryAssessOptionsSchema = z.object({
   dealId: z.number().int().nonnegative(),
@@ -64,6 +72,16 @@ export function assertMilestoneReadyForAssessment(
   }
 }
 
+export function assertDealReadyForAssessmentCommit(
+  deal: Pick<DealAccount, "status">,
+): void {
+  const status = parseDealStatus(deal.status);
+
+  if (status !== DealStatus.InProgress) {
+    throw new DealNotReadyForAssessmentError(status);
+  }
+}
+
 export function parseDealStatus(status: DealStatusMirror): DealStatus {
   const normalized = extractAnchorEnumKey(status);
 
@@ -94,6 +112,42 @@ export function bnToSafeNumber(value: BN, fieldName: string): number {
   }
 
   return Number(bigintValue);
+}
+
+export function mapServiceDecisionToAnchorDecision(
+  decision: ServiceAssessmentDecision,
+): AssessmentDecisionMirror {
+  switch (decision) {
+    case "approve":
+      return { approve: {} };
+    case "hold":
+      return { hold: {} };
+    case "dispute":
+      return { dispute: {} };
+    default:
+      {
+        const exhaustiveCheck: never = decision;
+        throw new InvalidExecutorInputError(
+          `Unsupported service assessment decision: ${String(exhaustiveCheck)}`,
+        );
+      }
+  }
+}
+
+export function parseAssessmentDecision(
+  status: AssessmentDecisionMirror,
+): AssessmentDecision {
+  const normalized = extractAnchorEnumKey(status);
+
+  if (!Object.values(AssessmentDecision).includes(normalized as AssessmentDecision)) {
+    throw new InvalidExecutorInputError(`Unsupported assessment decision: ${normalized}`);
+  }
+
+  return normalized as AssessmentDecision;
+}
+
+export function rationaleHashHexToBytes(hex: string): number[] {
+  return Array.from(hexToEvidenceHash(hex));
 }
 
 function extractAnchorEnumKey(value: Record<string, unknown>): string {

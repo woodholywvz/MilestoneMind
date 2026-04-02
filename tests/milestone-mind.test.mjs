@@ -17,6 +17,7 @@ import {
 const PLATFORM_SEED = Buffer.from("platform");
 const DEAL_SEED = Buffer.from("deal");
 const MILESTONE_SEED = Buffer.from("milestone");
+const ASSESSMENT_SEED = Buffer.from("assessment");
 const VAULT_SEED = Buffer.from("vault");
 const MOCK_USDC_DECIMALS = 6;
 
@@ -52,6 +53,10 @@ function evidenceHashToHex(hash) {
   return Array.from(hash, (value) => value.toString(16).padStart(2, "0")).join("");
 }
 
+function assessmentDecision(value) {
+  return { [value]: {} };
+}
+
 async function airdropLamports(connection, recipient, lamports) {
   const signature = await connection.requestAirdrop(recipient, lamports);
   const latestBlockhash = await connection.getLatestBlockhash();
@@ -76,7 +81,7 @@ test("milestone_mind happy path", async (t) => {
   const client = wallet;
   const admin = wallet.publicKey;
   const freelancer = web3.Keypair.generate();
-  const assessor = web3.Keypair.generate().publicKey;
+  const assessor = web3.Keypair.generate();
   const dealTitle = "Launch landing page";
   const milestoneTitles = [
     "Draft wireframes",
@@ -93,15 +98,29 @@ test("milestone_mind happy path", async (t) => {
     new anchor.BN(0),
   );
   const clientStartingBalance = BigInt(20_000_000);
-  const evidencePayload = {
-    evidenceUri: "ipfs://milestonemind/mock-proof-001",
-    evidenceHashHex: "ab".repeat(32),
-    evidenceSummary: "Implemented the first responsive milestone deliverable.",
-    attachmentCount: 2,
-  };
-  const evidenceHash = hexToEvidenceHash(evidencePayload.evidenceHashHex);
+  const evidencePayloads = [
+    {
+      evidenceUri: "ipfs://milestonemind/mock-proof-001",
+      evidenceHashHex: "ab".repeat(32),
+      evidenceSummary: "Implemented the first responsive milestone deliverable.",
+      attachmentCount: 2,
+    },
+    {
+      evidenceUri: "ipfs://milestonemind/mock-proof-002",
+      evidenceHashHex: "cd".repeat(32),
+      evidenceSummary: "Submitted rollout package that still needs clarifying proof.",
+      attachmentCount: 2,
+    },
+    {
+      evidenceUri: "ipfs://milestonemind/mock-proof-003",
+      evidenceHashHex: "ef".repeat(32),
+      evidenceSummary: "Submitted evidence package that will be disputed.",
+      attachmentCount: 1,
+    },
+  ];
 
   await airdropLamports(provider.connection, freelancer.publicKey, web3.LAMPORTS_PER_SOL);
+  await airdropLamports(provider.connection, assessor.publicKey, web3.LAMPORTS_PER_SOL);
 
   const usdcMint = await createMint(
     provider.connection,
@@ -140,7 +159,7 @@ test("milestone_mind happy path", async (t) => {
   );
 
   await program.methods
-    .initializePlatform(admin, assessor, usdcMint)
+    .initializePlatform(admin, assessor.publicKey, usdcMint)
     .accounts({
       payer: client.publicKey,
       platform: platformPda,
@@ -152,7 +171,7 @@ test("milestone_mind happy path", async (t) => {
     const platform = await program.account.platformConfig.fetch(platformPda);
 
     assert.equal(platform.admin.toBase58(), admin.toBase58());
-    assert.equal(platform.assessor.toBase58(), assessor.toBase58());
+    assert.equal(platform.assessor.toBase58(), assessor.publicKey.toBase58());
     assert.equal(platform.usdcMint.toBase58(), usdcMint.toBase58());
     assert.equal(platform.nextDealId.toNumber(), 0);
     assert.equal(typeof platform.bump, "number");
@@ -198,6 +217,12 @@ test("milestone_mind happy path", async (t) => {
       program.programId,
     )[0],
   );
+  const assessmentPdas = milestonePdas.map((milestonePda) =>
+    web3.PublicKey.findProgramAddressSync(
+      [ASSESSMENT_SEED, milestonePda.toBuffer()],
+      program.programId,
+    )[0],
+  );
   const [vaultAuthorityPda] = web3.PublicKey.findProgramAddressSync(
     [VAULT_SEED, dealPda.toBuffer()],
     program.programId,
@@ -207,6 +232,56 @@ test("milestone_mind happy path", async (t) => {
     vaultAuthorityPda,
     true,
   );
+
+  async function submitEvidenceForMilestone(index) {
+    const payload = evidencePayloads[index];
+
+    await program.methods
+      .submitEvidence(
+        index,
+        payload.evidenceUri,
+        Array.from(hexToEvidenceHash(payload.evidenceHashHex)),
+        payload.evidenceSummary,
+        payload.attachmentCount,
+      )
+      .accounts({
+        freelancer: freelancer.publicKey,
+        deal: dealPda,
+        milestone: milestonePdas[index],
+      })
+      .signers([freelancer])
+      .rpc();
+  }
+
+  async function submitAssessmentForMilestone(
+    index,
+    decision,
+    confidenceBps,
+    approvedBps,
+    rationaleHashHex,
+    summary,
+    signer = assessor,
+  ) {
+    await program.methods
+      .submitAssessment(
+        index,
+        assessmentDecision(decision),
+        confidenceBps,
+        approvedBps,
+        Array.from(hexToEvidenceHash(rationaleHashHex)),
+        summary,
+      )
+      .accounts({
+        platform: platformPda,
+        assessor: signer.publicKey,
+        deal: dealPda,
+        milestone: milestonePdas[index],
+        assessment: assessmentPdas[index],
+        systemProgram: web3.SystemProgram.programId,
+      })
+      .signers([signer])
+      .rpc();
+  }
 
   for (const [index, milestoneTitle] of milestoneTitles.entries()) {
     await program.methods
@@ -315,24 +390,11 @@ test("milestone_mind happy path", async (t) => {
   });
 
   await t.test("submit_evidence succeeds and moves the deal into progress", async () => {
-    await program.methods
-      .submitEvidence(
-        0,
-        evidencePayload.evidenceUri,
-        Array.from(evidenceHash),
-        evidencePayload.evidenceSummary,
-        evidencePayload.attachmentCount,
-      )
-      .accounts({
-        freelancer: freelancer.publicKey,
-        deal: dealPda,
-        milestone: milestonePdas[0],
-      })
-      .signers([freelancer])
-      .rpc();
+    await submitEvidenceForMilestone(0);
 
     const deal = await program.account.deal.fetch(dealPda);
     const milestone = await program.account.milestone.fetch(milestonePdas[0]);
+    const evidencePayload = evidencePayloads[0];
 
     assert.equal(enumKey(deal.status), "inProgress");
     assert.equal(enumKey(milestone.status), "evidenceSubmitted");
@@ -344,6 +406,17 @@ test("milestone_mind happy path", async (t) => {
     assert.equal(milestone.evidenceSummary, evidencePayload.evidenceSummary);
     assert.equal(milestone.attachmentCount, evidencePayload.attachmentCount);
     assert.ok(milestone.lastSubmittedAt.gt(new anchor.BN(0)));
+  });
+
+  await t.test("submit_evidence works for additional milestones", async () => {
+    await submitEvidenceForMilestone(1);
+    await submitEvidenceForMilestone(2);
+
+    const milestoneOne = await program.account.milestone.fetch(milestonePdas[1]);
+    const milestoneTwo = await program.account.milestone.fetch(milestonePdas[2]);
+
+    assert.equal(enumKey(milestoneOne.status), "evidenceSubmitted");
+    assert.equal(enumKey(milestoneTwo.status), "evidenceSubmitted");
   });
 
   await t.test("only freelancer can submit evidence", async () => {
@@ -361,6 +434,146 @@ test("milestone_mind happy path", async (t) => {
           deal: dealPda,
           milestone: milestonePdas[1],
         })
+        .rpc(),
+    );
+  });
+
+  await t.test("approve path stores assessment data and marks the milestone approved", async () => {
+    const approvalSummary = "AI assessor approved the milestone with substantial confidence.";
+    const approvalHashHex = "11".repeat(32);
+
+    await submitAssessmentForMilestone(
+      0,
+      "approve",
+      9_100,
+      7_000,
+      approvalHashHex,
+      approvalSummary,
+    );
+
+    const deal = await program.account.deal.fetch(dealPda);
+    const milestone = await program.account.milestone.fetch(milestonePdas[0]);
+    const assessment = await program.account.assessment.fetch(assessmentPdas[0]);
+
+    assert.equal(enumKey(deal.status), "inProgress");
+    assert.equal(enumKey(milestone.status), "approved");
+    assert.equal(assessment.milestone.toBase58(), milestonePdas[0].toBase58());
+    assert.equal(assessment.assessor.toBase58(), assessor.publicKey.toBase58());
+    assert.equal(enumKey(assessment.decision), "approve");
+    assert.equal(assessment.confidenceBps, 9_100);
+    assert.equal(assessment.approvedBps, 7_000);
+    assert.equal(evidenceHashToHex(assessment.rationaleHash), approvalHashHex);
+    assert.equal(assessment.summary, approvalSummary);
+    assert.ok(assessment.createdAt.gt(new anchor.BN(0)));
+  });
+
+  await t.test("only assessor can submit assessment", async () => {
+    await assert.rejects(
+      program.methods
+        .submitAssessment(
+          2,
+          assessmentDecision("hold"),
+          6_500,
+          0,
+          Array.from(hexToEvidenceHash("22".repeat(32))),
+          "Unauthorized assessment attempt.",
+        )
+        .accounts({
+          platform: platformPda,
+          assessor: client.publicKey,
+          deal: dealPda,
+          milestone: milestonePdas[2],
+          assessment: assessmentPdas[2],
+          systemProgram: web3.SystemProgram.programId,
+        })
+        .rpc(),
+    );
+  });
+
+  await t.test("hold path marks the milestone on hold", async () => {
+    await submitAssessmentForMilestone(
+      1,
+      "hold",
+      6_800,
+      0,
+      "33".repeat(32),
+      "Assessor requires stronger corroborating artifacts before payout.",
+    );
+
+    const deal = await program.account.deal.fetch(dealPda);
+    const milestone = await program.account.milestone.fetch(milestonePdas[1]);
+    const assessment = await program.account.assessment.fetch(assessmentPdas[1]);
+
+    assert.equal(enumKey(deal.status), "inProgress");
+    assert.equal(enumKey(milestone.status), "onHold");
+    assert.equal(enumKey(assessment.decision), "hold");
+    assert.equal(assessment.approvedBps, 0);
+  });
+
+  await t.test("cannot submit assessment when milestone is no longer EvidenceSubmitted", async () => {
+    await assert.rejects(
+      program.methods
+        .submitAssessment(
+          0,
+          assessmentDecision("approve"),
+          9_200,
+          8_000,
+          Array.from(hexToEvidenceHash("44".repeat(32))),
+          "This second approval should fail.",
+        )
+        .accounts({
+          platform: platformPda,
+          assessor: assessor.publicKey,
+          deal: dealPda,
+          milestone: milestonePdas[0],
+          assessment: assessmentPdas[0],
+          systemProgram: web3.SystemProgram.programId,
+        })
+        .signers([assessor])
+        .rpc(),
+    );
+  });
+
+  await t.test("dispute path marks the milestone and deal disputed", async () => {
+    await submitAssessmentForMilestone(
+      2,
+      "dispute",
+      8_400,
+      0,
+      "55".repeat(32),
+      "Assessor found conflicting evidence and raised a dispute.",
+    );
+
+    const deal = await program.account.deal.fetch(dealPda);
+    const milestone = await program.account.milestone.fetch(milestonePdas[2]);
+    const assessment = await program.account.assessment.fetch(assessmentPdas[2]);
+
+    assert.equal(enumKey(deal.status), "disputed");
+    assert.equal(enumKey(milestone.status), "inDispute");
+    assert.equal(enumKey(assessment.decision), "dispute");
+    assert.equal(assessment.approvedBps, 0);
+  });
+
+  await t.test("cannot submit assessment when the deal is no longer InProgress", async () => {
+    await assert.rejects(
+      program.methods
+        .submitAssessment(
+          1,
+          assessmentDecision("hold"),
+          6_900,
+          0,
+          Array.from(hexToEvidenceHash("66".repeat(32))),
+          "This should fail after the deal becomes disputed.",
+        )
+        .accounts({
+          platform: platformPda,
+          assessor: assessor.publicKey,
+          deal: dealPda,
+          milestone: milestonePdas[1],
+          assessment: assessmentPdas[1],
+          systemProgram: web3.SystemProgram.programId,
+        })
+        .signers([assessor])
         .rpc(),
     );
   });

@@ -12,7 +12,28 @@ export const milestoneMindIdl = {
     version: "0.1.0",
     spec: "0.1.0",
   },
-  instructions: [],
+  instructions: [
+    {
+      name: "submit_assessment",
+      discriminator: discriminator("global", "submit_assessment"),
+      accounts: [
+        { name: "platform" },
+        { name: "assessor", writable: true, signer: true },
+        { name: "deal", writable: true },
+        { name: "milestone", writable: true },
+        { name: "assessment", writable: true },
+        { name: "system_program" },
+      ],
+      args: [
+        { name: "milestone_index", type: "u16" },
+        { name: "decision", type: { defined: { name: "AssessmentDecision" } } },
+        { name: "confidence_bps", type: "u16" },
+        { name: "approved_bps", type: "u16" },
+        { name: "rationale_hash", type: { array: ["u8", 32] } },
+        { name: "summary", type: "string" },
+      ],
+    },
+  ],
   accounts: [
     {
       name: "PlatformConfig",
@@ -110,6 +131,7 @@ export const milestoneMindIdl = {
           { name: "Draft" },
           { name: "Funded" },
           { name: "InProgress" },
+          { name: "Disputed" },
           { name: "Completed" },
           { name: "Cancelled" },
         ],
@@ -122,7 +144,9 @@ export const milestoneMindIdl = {
         variants: [
           { name: "PendingEvidence" },
           { name: "EvidenceSubmitted" },
+          { name: "Approved" },
           { name: "OnHold" },
+          { name: "InDispute" },
           { name: "PaidFull" },
           { name: "Resolved" },
           { name: "Refunded" },
@@ -135,8 +159,8 @@ export const milestoneMindIdl = {
         kind: "enum",
         variants: [
           { name: "Approve" },
-          { name: "Reject" },
-          { name: "PartialApprove" },
+          { name: "Hold" },
+          { name: "Dispute" },
         ],
       },
     },

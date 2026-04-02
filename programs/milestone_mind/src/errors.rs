@@ -6,6 +6,8 @@ pub enum MilestoneMindError {
     UnauthorizedClient,
     #[msg("Only the assigned freelancer may perform this action.")]
     UnauthorizedFreelancer,
+    #[msg("Only the whitelisted assessor may perform this action.")]
+    UnauthorizedAssessor,
     #[msg("The provided title exceeds the maximum allowed length.")]
     TitleTooLong,
     #[msg("The provided evidence URI exceeds the maximum allowed length.")]
@@ -18,6 +20,8 @@ pub enum MilestoneMindError {
     EmptyEvidenceSummary,
     #[msg("The provided assessment summary exceeds the maximum allowed length.")]
     AssessmentSummaryTooLong,
+    #[msg("Assessment summary cannot be empty.")]
+    EmptyAssessmentSummary,
     #[msg("Milestone count must be greater than zero.")]
     InvalidMilestoneCount,
     #[msg("Milestone index is outside the declared milestone count.")]
@@ -38,6 +42,18 @@ pub enum MilestoneMindError {
     InvalidEvidenceDealStatus,
     #[msg("The milestone is not in a status that allows evidence submission.")]
     InvalidEvidenceMilestoneStatus,
+    #[msg("The deal is not in a status that allows assessment submission.")]
+    InvalidAssessmentDealStatus,
+    #[msg("The milestone is not in a status that allows assessment submission.")]
+    InvalidAssessmentMilestoneStatus,
+    #[msg("Confidence basis points must be between 0 and 10000.")]
+    InvalidConfidenceBps,
+    #[msg("Approved basis points must be between 0 and 10000.")]
+    InvalidApprovedBps,
+    #[msg("Approve decisions require approved basis points greater than zero.")]
+    ApproveRequiresPositiveApprovedBps,
+    #[msg("Hold and dispute decisions require approved basis points to be zero.")]
+    NonApproveRequiresZeroApprovedBps,
     #[msg("The client token account does not have enough balance to fund this deal.")]
     InsufficientClientBalance,
     #[msg("Arithmetic overflow occurred.")]

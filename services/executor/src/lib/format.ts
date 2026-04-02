@@ -26,3 +26,34 @@ export function renderDryAssessmentOutput(input: {
 
   return `${lines.join("\n")}\n`;
 }
+
+export function renderCommitAssessmentOutput(input: {
+  requestId: string;
+  dealId: number;
+  milestoneIndex: number;
+  dealPda: string;
+  milestonePda: string;
+  txSignature: string;
+  milestoneStatus: string;
+  assessment: AssessResponse;
+}): string {
+  const lines = [
+    "Assessment Commit",
+    `requestId: ${input.requestId}`,
+    `dealId: ${input.dealId}`,
+    `milestoneIndex: ${input.milestoneIndex}`,
+    `dealPda: ${input.dealPda}`,
+    `milestonePda: ${input.milestonePda}`,
+    `txSignature: ${input.txSignature}`,
+    `milestoneStatus: ${input.milestoneStatus}`,
+    `decision: ${input.assessment.decision}`,
+    `confidenceBps: ${input.assessment.confidenceBps}`,
+    `approvedBps: ${input.assessment.approvedBps}`,
+    `summary: ${input.assessment.summary}`,
+    `rationaleHashHex: ${input.assessment.rationaleHashHex}`,
+    "ruleTrace:",
+    ...input.assessment.ruleTrace.map((item, index) => `${index + 1}. ${item}`),
+  ];
+
+  return `${lines.join("\n")}\n`;
+}

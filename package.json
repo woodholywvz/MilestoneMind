@@ -13,6 +13,7 @@
     "dev:ai": "node ./scripts/run-ai-service.mjs",
     "dev:executor": "npm run dev --workspace @milestone-mind/executor",
     "executor:assess:dry": "npm run assess:dry --workspace @milestone-mind/executor --",
+    "executor:assess:commit": "npm run assess:commit --workspace @milestone-mind/executor --",
     "build": "npm run build --workspace @milestone-mind/shared && npm run build --workspace @milestone-mind/executor && npm run build --workspace @milestone-mind/web",
     "lint": "npm run lint --workspace @milestone-mind/shared && npm run lint --workspace @milestone-mind/executor && npm run lint --workspace @milestone-mind/web",
     "test": "npm run test --workspace @milestone-mind/shared && npm run test --workspace @milestone-mind/executor && node ./scripts/check-ai-health-route.mjs",

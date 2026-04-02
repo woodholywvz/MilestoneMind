@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "assess:dry": "tsx src/cli/assess-dry.ts",
+    "assess:commit": "tsx src/cli/assess-commit.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "lint": "eslint src tests",

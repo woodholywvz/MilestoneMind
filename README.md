@@ -133,6 +133,8 @@ Executor environment variables:
 - `EXECUTOR_KEYPAIR_PATH` or `ANCHOR_WALLET`
 - `MILESTONE_MIND_PROGRAM_ID` default `Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkgMQHG7d43x`
 
+For `assess:commit`, the executor wallet must match `platform.assessor`.
+
 Dry-run CLI examples:
 
 ```bash
@@ -143,6 +145,16 @@ npm run executor:assess:dry -- --deal-id 0 --milestone-index 0
 pnpm --filter @milestone-mind/executor assess:dry -- --deal-id 0 --milestone-index 0
 ```
 
+Commit CLI examples:
+
+```bash
+npm run executor:assess:commit -- --deal-id 0 --milestone-index 0
+```
+
+```bash
+pnpm --filter @milestone-mind/executor assess:commit -- --deal-id 0 --milestone-index 0
+```
+
 Dry-run flow:
 
 1. Derive the `Deal` PDA from `deal_id`.
@@ -151,6 +163,15 @@ Dry-run flow:
 4. Refuse execution unless the milestone status is `EvidenceSubmitted`.
 5. Build the shared `/assess` payload and validate it with the shared zod schema.
 6. Call the AI service and print the parsed assessment response.
+
+Commit flow:
+
+1. Read `PlatformConfig`, `Deal`, and `Milestone`.
+2. Refuse execution unless the milestone status is `EvidenceSubmitted`.
+3. Refuse execution unless the executor wallet matches `platform.assessor`.
+4. Call the AI service and parse the shared assessment response.
+5. Submit `submit_assessment` on-chain.
+6. Print the transaction signature and the final milestone status.
 
 ## Local validator
 
@@ -228,6 +249,7 @@ npm run dev:web
 npm run dev:ai
 npm run dev:executor
 npm run executor:assess:dry -- --deal-id 0 --milestone-index 0
+npm run executor:assess:commit -- --deal-id 0 --milestone-index 0
 npm run build
 npm run lint
 npm run test

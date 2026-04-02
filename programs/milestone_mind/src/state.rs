@@ -118,6 +118,7 @@ pub enum DealStatus {
     Draft,
     Funded,
     InProgress,
+    Disputed,
     Completed,
     Cancelled,
 }
@@ -126,7 +127,9 @@ pub enum DealStatus {
 pub enum MilestoneStatus {
     PendingEvidence,
     EvidenceSubmitted,
+    Approved,
     OnHold,
+    InDispute,
     PaidFull,
     Resolved,
     Refunded,
@@ -135,6 +138,6 @@ pub enum MilestoneStatus {
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum AssessmentDecision {
     Approve,
-    Reject,
-    PartialApprove,
+    Hold,
+    Dispute,
 }

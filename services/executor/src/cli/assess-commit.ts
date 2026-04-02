@@ -1,19 +1,21 @@
 import process from "node:process";
 import { parseAssessmentCliArgs } from "./args.js";
-import { performDryAssessment } from "../lib/assessment.js";
-import { renderDryAssessmentOutput } from "../lib/format.js";
+import { performCommitAssessment } from "../lib/assessment.js";
+import { renderCommitAssessmentOutput } from "../lib/format.js";
 
 async function main(): Promise<void> {
   const { dealId, milestoneIndex } = parseAssessmentCliArgs(process.argv.slice(2));
-  const result = await performDryAssessment({ dealId, milestoneIndex });
+  const result = await performCommitAssessment({ dealId, milestoneIndex });
 
   process.stdout.write(
-    renderDryAssessmentOutput({
+    renderCommitAssessmentOutput({
       requestId: result.requestId,
       dealId: result.dealId,
       milestoneIndex: result.milestoneIndex,
       dealPda: result.dealPda,
       milestonePda: result.milestonePda,
+      txSignature: result.txSignature,
+      milestoneStatus: result.milestoneStatus,
       assessment: result.assessment,
     }),
   );

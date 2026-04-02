@@ -13,6 +13,7 @@ export enum DealStatus {
   Draft = "draft",
   Funded = "funded",
   InProgress = "inProgress",
+  Disputed = "disputed",
   Completed = "completed",
   Cancelled = "cancelled",
 }
@@ -21,13 +22,16 @@ export type DealStatusMirror =
   | { draft: EmptyAnchorEnum }
   | { funded: EmptyAnchorEnum }
   | { inProgress: EmptyAnchorEnum }
+  | { disputed: EmptyAnchorEnum }
   | { completed: EmptyAnchorEnum }
   | { cancelled: EmptyAnchorEnum };
 
 export enum MilestoneStatus {
   PendingEvidence = "pendingEvidence",
   EvidenceSubmitted = "evidenceSubmitted",
+  Approved = "approved",
   OnHold = "onHold",
+  InDispute = "inDispute",
   PaidFull = "paidFull",
   Resolved = "resolved",
   Refunded = "refunded",
@@ -36,18 +40,20 @@ export enum MilestoneStatus {
 export type MilestoneStatusMirror =
   | { pendingEvidence: EmptyAnchorEnum }
   | { evidenceSubmitted: EmptyAnchorEnum }
+  | { approved: EmptyAnchorEnum }
   | { onHold: EmptyAnchorEnum }
+  | { inDispute: EmptyAnchorEnum }
   | { paidFull: EmptyAnchorEnum }
   | { resolved: EmptyAnchorEnum }
   | { refunded: EmptyAnchorEnum };
 
 export enum AssessmentDecision {
   Approve = "approve",
-  Reject = "reject",
-  PartialApprove = "partialApprove",
+  Hold = "hold",
+  Dispute = "dispute",
 }
 
 export type AssessmentDecisionMirror =
   | { approve: EmptyAnchorEnum }
-  | { reject: EmptyAnchorEnum }
-  | { partialApprove: EmptyAnchorEnum };
+  | { hold: EmptyAnchorEnum }
+  | { dispute: EmptyAnchorEnum };
