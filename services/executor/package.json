@@ -5,12 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
+    "assess:dry": "tsx src/cli/assess-dry.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "lint": "eslint src tests",
-    "test": "npm run build && node tests/health.test.mjs"
+    "test": "npm run build && node --test tests/health.test.mjs tests/executor.test.mjs"
   },
   "dependencies": {
-    "@milestone-mind/shared": "file:../../packages/shared"
+    "@coral-xyz/anchor": "^0.30.1",
+    "@milestone-mind/shared": "file:../../packages/shared",
+    "@solana/web3.js": "^1.98.4"
   }
 }

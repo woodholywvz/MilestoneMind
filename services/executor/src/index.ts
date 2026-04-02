@@ -1,16 +1,11 @@
-import process from "node:process";
-import { createAppServer } from "./server.js";
+import { loadExecutorConfig } from "./env/config.js";
+import { createAppServer } from "./http/server.js";
 
-const host = process.env.EXECUTOR_HOST ?? "0.0.0.0";
-const rawPort = process.env.EXECUTOR_PORT ?? "8080";
-const port = Number.parseInt(rawPort, 10);
+const config = loadExecutorConfig();
+const server = createAppServer({ config });
 
-if (Number.isNaN(port)) {
-  throw new Error(`Invalid EXECUTOR_PORT value: ${rawPort}`);
-}
-
-const server = createAppServer();
-
-server.listen(port, host, () => {
-  console.log(`Executor listening on http://${host}:${port}`);
+server.listen(config.executorPort, config.executorHost, () => {
+  console.log(
+    `[executor] req=startup deal=- milestone=- listening on http://${config.executorHost}:${config.executorPort}`,
+  );
 });

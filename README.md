@@ -116,6 +116,42 @@ AI_OPENAI_MODEL=gpt-5.4-mini
 AI_OPENAI_EMBEDDING_MODEL=text-embedding-3-small
 ```
 
+## Executor service
+
+Run the executor service:
+
+```bash
+npm run dev:executor
+```
+
+Executor environment variables:
+
+- `EXECUTOR_HOST`
+- `EXECUTOR_PORT`
+- `SOLANA_RPC_URL`
+- `EXECUTOR_AI_BASE_URL` default `http://127.0.0.1:8000`
+- `EXECUTOR_KEYPAIR_PATH` or `ANCHOR_WALLET`
+- `MILESTONE_MIND_PROGRAM_ID` default `Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkgMQHG7d43x`
+
+Dry-run CLI examples:
+
+```bash
+npm run executor:assess:dry -- --deal-id 0 --milestone-index 0
+```
+
+```bash
+pnpm --filter @milestone-mind/executor assess:dry -- --deal-id 0 --milestone-index 0
+```
+
+Dry-run flow:
+
+1. Derive the `Deal` PDA from `deal_id`.
+2. Derive the `Milestone` PDA from the deal PDA and `milestone_index`.
+3. Read the on-chain deal and milestone accounts through the Anchor client.
+4. Refuse execution unless the milestone status is `EvidenceSubmitted`.
+5. Build the shared `/assess` payload and validate it with the shared zod schema.
+6. Call the AI service and print the parsed assessment response.
+
 ## Local validator
 
 Start a fresh validator in a dedicated terminal:
@@ -191,6 +227,7 @@ Required accounts for `fund_deal()`:
 npm run dev:web
 npm run dev:ai
 npm run dev:executor
+npm run executor:assess:dry -- --deal-id 0 --milestone-index 0
 npm run build
 npm run lint
 npm run test
