@@ -147,6 +147,7 @@ export const milestoneMindIdl = {
           { name: "Approved" },
           { name: "OnHold" },
           { name: "InDispute" },
+          { name: "PaidPartial" },
           { name: "PaidFull" },
           { name: "Resolved" },
           { name: "Refunded" },

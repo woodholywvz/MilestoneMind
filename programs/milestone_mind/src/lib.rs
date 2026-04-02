@@ -6,7 +6,8 @@ pub mod instructions;
 pub mod state;
 
 use instructions::{
-    CreateDeal, CreateMilestone, FundDeal, InitializePlatform, SubmitAssessment, SubmitEvidence,
+    CreateDeal, CreateMilestone, FundDeal, InitializePlatform, ReleaseApprovedFunds,
+    SubmitAssessment, SubmitEvidence,
 };
 
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkgMQHG7d43x");
@@ -83,5 +84,12 @@ pub mod milestone_mind {
             rationale_hash,
             summary,
         )
+    }
+
+    pub fn release_approved_funds(
+        ctx: Context<ReleaseApprovedFunds>,
+        milestone_index: u16,
+    ) -> Result<()> {
+        instructions::release_approved_funds::handler(ctx, milestone_index)
     }
 }

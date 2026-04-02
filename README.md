@@ -229,6 +229,9 @@ Current funding flow:
 2. Create a deal in `Draft`.
 3. Create milestones for the deal.
 4. Call `fund_deal()`.
+5. Submit evidence as the freelancer.
+6. Submit an approve assessment as the whitelisted assessor.
+7. Call `release_approved_funds()` to pay the freelancer from escrow.
 
 `fund_deal()` transfers exactly `deal.total_amount` from the client ATA into the program-controlled vault ATA for the PDA owner derived from `[b"vault", deal]`. The vault ATA is created automatically if needed.
 
@@ -241,6 +244,26 @@ Required accounts for `fund_deal()`:
 - `client_token_account` as the client's ATA for the mint
 - `vault_authority` PDA derived from `[b"vault", deal]`
 - `vault_token_account` as the ATA for `vault_authority`
+
+Release flow:
+
+1. `submit_assessment()` must have created an approve assessment for the milestone.
+2. `release_approved_funds()` can be called by the `client` or `platform.assessor`.
+3. Funds move from the deal vault ATA to the freelancer ATA for the same mint.
+4. If the freelancer ATA does not exist yet, the instruction creates it automatically.
+
+Release formula:
+
+```text
+release_amount = milestone.amount * approved_bps / 10000
+```
+
+Release outcomes:
+
+- `approved_bps == 10000` -> `milestone.status = PaidFull`
+- `approved_bps < 10000` -> `milestone.status = PaidPartial`
+
+`PaidPartial` means the approved portion was paid out to the freelancer, while the remainder stays in the deal vault for later dispute handling or manual resolution. This commit does not finalize the deal or close vault accounts automatically.
 
 ## Root scripts
 

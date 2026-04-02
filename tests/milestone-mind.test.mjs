@@ -232,6 +232,10 @@ test("milestone_mind happy path", async (t) => {
     vaultAuthorityPda,
     true,
   );
+  const freelancerTokenAccount = getAssociatedTokenAddressSync(
+    usdcMint,
+    freelancer.publicKey,
+  );
 
   async function submitEvidenceForMilestone(index) {
     const payload = evidencePayloads[index];
@@ -280,6 +284,37 @@ test("milestone_mind happy path", async (t) => {
         systemProgram: web3.SystemProgram.programId,
       })
       .signers([signer])
+      .rpc();
+  }
+
+  async function releaseApprovedFundsForMilestone(
+    index,
+    authority = client.publicKey,
+    signers = [],
+    deal = dealPda,
+    milestone = milestonePdas[index],
+    assessment = assessmentPdas[index],
+    vaultAuthority = vaultAuthorityPda,
+    vaultToken = vaultTokenAccount,
+  ) {
+    await program.methods
+      .releaseApprovedFunds(index)
+      .accounts({
+        platform: platformPda,
+        authority,
+        deal,
+        milestone,
+        assessment,
+        mint: usdcMint,
+        vaultAuthority,
+        vaultTokenAccount: vaultToken,
+        freelancer: freelancer.publicKey,
+        freelancerTokenAccount,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: web3.SystemProgram.programId,
+      })
+      .signers(signers)
       .rpc();
   }
 
@@ -467,6 +502,41 @@ test("milestone_mind happy path", async (t) => {
     assert.ok(assessment.createdAt.gt(new anchor.BN(0)));
   });
 
+  await t.test("partial release 70% auto-creates freelancer ATA and pays from vault", async () => {
+    const freelancerAtaBefore = await provider.connection.getAccountInfo(freelancerTokenAccount);
+    const vaultBalanceBefore = (await getAccount(provider.connection, vaultTokenAccount)).amount;
+
+    assert.equal(freelancerAtaBefore, null);
+    assert.equal(vaultBalanceBefore, BigInt(totalAmount.toString()));
+
+    await releaseApprovedFundsForMilestone(0);
+
+    const milestone = await program.account.milestone.fetch(milestonePdas[0]);
+    const freelancerBalanceAfter = (await getAccount(
+      provider.connection,
+      freelancerTokenAccount,
+    )).amount;
+    const vaultBalanceAfter = (await getAccount(provider.connection, vaultTokenAccount)).amount;
+    const expectedReleaseAmount = BigInt(1_400_000);
+
+    assert.equal(milestone.releasedAmount.toString(), expectedReleaseAmount.toString());
+    assert.equal(enumKey(milestone.status), "paidPartial");
+    assert.equal(freelancerBalanceAfter, expectedReleaseAmount);
+    assert.equal(vaultBalanceAfter, vaultBalanceBefore - expectedReleaseAmount);
+  });
+
+  await t.test("double release fails", async () => {
+    await assert.rejects(
+      releaseApprovedFundsForMilestone(0),
+    );
+  });
+
+  await t.test("non-approved milestone fails release", async () => {
+    await assert.rejects(
+      releaseApprovedFundsForMilestone(1),
+    );
+  });
+
   await t.test("only assessor can submit assessment", async () => {
     await assert.rejects(
       program.methods
@@ -486,7 +556,7 @@ test("milestone_mind happy path", async (t) => {
           assessment: assessmentPdas[2],
           systemProgram: web3.SystemProgram.programId,
         })
-        .rpc(),
+      .rpc(),
     );
   });
 
@@ -554,6 +624,149 @@ test("milestone_mind happy path", async (t) => {
     assert.equal(assessment.approvedBps, 0);
   });
 
+  await t.test("full release 100% works and assessor may trigger it", async () => {
+    const secondDealAmount = new anchor.BN(1_000_000);
+    const [secondDealPda] = web3.PublicKey.findProgramAddressSync(
+      [DEAL_SEED, u64Le(1)],
+      program.programId,
+    );
+    const [secondMilestonePda] = web3.PublicKey.findProgramAddressSync(
+      [MILESTONE_SEED, secondDealPda.toBuffer(), u16Le(0)],
+      program.programId,
+    );
+    const [secondAssessmentPda] = web3.PublicKey.findProgramAddressSync(
+      [ASSESSMENT_SEED, secondMilestonePda.toBuffer()],
+      program.programId,
+    );
+    const [secondVaultAuthorityPda] = web3.PublicKey.findProgramAddressSync(
+      [VAULT_SEED, secondDealPda.toBuffer()],
+      program.programId,
+    );
+    const secondVaultTokenAccount = getAssociatedTokenAddressSync(
+      usdcMint,
+      secondVaultAuthorityPda,
+      true,
+    );
+    const freelancerBalanceBefore = (await getAccount(
+      provider.connection,
+      freelancerTokenAccount,
+    )).amount;
+
+    await program.methods
+      .createDeal(freelancer.publicKey, "Full payout QA cycle", 1, secondDealAmount)
+      .accounts({
+        platform: platformPda,
+        client: client.publicKey,
+        deal: secondDealPda,
+        systemProgram: web3.SystemProgram.programId,
+      })
+      .rpc();
+
+    await program.methods
+      .createMilestone(0, "Final acceptance handoff", secondDealAmount)
+      .accounts({
+        client: client.publicKey,
+        deal: secondDealPda,
+        milestone: secondMilestonePda,
+        systemProgram: web3.SystemProgram.programId,
+      })
+      .rpc();
+
+    await program.methods
+      .fundDeal()
+      .accounts({
+        platform: platformPda,
+        client: client.publicKey,
+        deal: secondDealPda,
+        mint: usdcMint,
+        vaultAuthority: secondVaultAuthorityPda,
+        clientTokenAccount,
+        vaultTokenAccount: secondVaultTokenAccount,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: web3.SystemProgram.programId,
+      })
+      .rpc();
+
+    await program.methods
+      .submitEvidence(
+        0,
+        "ipfs://milestonemind/full-payout-proof",
+        Array.from(hexToEvidenceHash("77".repeat(32))),
+        "Client acceptance package is complete and ready for payout.",
+        2,
+      )
+      .accounts({
+        freelancer: freelancer.publicKey,
+        deal: secondDealPda,
+        milestone: secondMilestonePda,
+      })
+      .signers([freelancer])
+      .rpc();
+
+    await program.methods
+      .submitAssessment(
+        0,
+        assessmentDecision("approve"),
+        9_700,
+        10_000,
+        Array.from(hexToEvidenceHash("88".repeat(32))),
+        "Assessor approved the milestone for a full payout.",
+      )
+      .accounts({
+        platform: platformPda,
+        assessor: assessor.publicKey,
+        deal: secondDealPda,
+        milestone: secondMilestonePda,
+        assessment: secondAssessmentPda,
+        systemProgram: web3.SystemProgram.programId,
+      })
+      .signers([assessor])
+      .rpc();
+
+    await assert.rejects(
+      releaseApprovedFundsForMilestone(
+        0,
+        freelancer.publicKey,
+        [freelancer],
+        secondDealPda,
+        secondMilestonePda,
+        secondAssessmentPda,
+        secondVaultAuthorityPda,
+        secondVaultTokenAccount,
+      ),
+    );
+
+    await releaseApprovedFundsForMilestone(
+      0,
+      assessor.publicKey,
+      [assessor],
+      secondDealPda,
+      secondMilestonePda,
+      secondAssessmentPda,
+      secondVaultAuthorityPda,
+      secondVaultTokenAccount,
+    );
+
+    const secondMilestone = await program.account.milestone.fetch(secondMilestonePda);
+    const vaultBalanceAfter = (await getAccount(
+      provider.connection,
+      secondVaultTokenAccount,
+    )).amount;
+    const freelancerBalanceAfter = (await getAccount(
+      provider.connection,
+      freelancerTokenAccount,
+    )).amount;
+
+    assert.equal(secondMilestone.releasedAmount.toString(), secondDealAmount.toString());
+    assert.equal(enumKey(secondMilestone.status), "paidFull");
+    assert.equal(vaultBalanceAfter, BigInt(0));
+    assert.equal(
+      freelancerBalanceAfter,
+      freelancerBalanceBefore + BigInt(secondDealAmount.toString()),
+    );
+  });
+
   await t.test("cannot submit assessment when the deal is no longer InProgress", async () => {
     await assert.rejects(
       program.methods
@@ -580,7 +793,7 @@ test("milestone_mind happy path", async (t) => {
 
   await t.test("cannot submit evidence before deal funding", async () => {
     const [unfundedDealPda] = web3.PublicKey.findProgramAddressSync(
-      [DEAL_SEED, u64Le(1)],
+      [DEAL_SEED, u64Le(2)],
       program.programId,
     );
 

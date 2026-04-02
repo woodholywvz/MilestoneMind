@@ -8,6 +8,8 @@ pub enum MilestoneMindError {
     UnauthorizedFreelancer,
     #[msg("Only the whitelisted assessor may perform this action.")]
     UnauthorizedAssessor,
+    #[msg("Only the deal client or whitelisted assessor may perform this action.")]
+    UnauthorizedReleaseCaller,
     #[msg("The provided title exceeds the maximum allowed length.")]
     TitleTooLong,
     #[msg("The provided evidence URI exceeds the maximum allowed length.")]
@@ -46,6 +48,10 @@ pub enum MilestoneMindError {
     InvalidAssessmentDealStatus,
     #[msg("The milestone is not in a status that allows assessment submission.")]
     InvalidAssessmentMilestoneStatus,
+    #[msg("The deal is not in a status that allows release.")]
+    InvalidReleaseDealStatus,
+    #[msg("The milestone is not in a status that allows release.")]
+    InvalidReleaseMilestoneStatus,
     #[msg("Confidence basis points must be between 0 and 10000.")]
     InvalidConfidenceBps,
     #[msg("Approved basis points must be between 0 and 10000.")]
@@ -54,8 +60,18 @@ pub enum MilestoneMindError {
     ApproveRequiresPositiveApprovedBps,
     #[msg("Hold and dispute decisions require approved basis points to be zero.")]
     NonApproveRequiresZeroApprovedBps,
+    #[msg("The milestone has already been released.")]
+    AlreadyReleased,
+    #[msg("A release requires an approve assessment for this milestone.")]
+    InvalidReleaseAssessment,
+    #[msg("The assessment does not belong to the provided milestone.")]
+    AssessmentMilestoneMismatch,
+    #[msg("The computed release amount must be greater than zero.")]
+    InvalidReleaseAmount,
     #[msg("The client token account does not have enough balance to fund this deal.")]
     InsufficientClientBalance,
+    #[msg("The vault token account does not have enough balance for this release.")]
+    InsufficientVaultBalance,
     #[msg("Arithmetic overflow occurred.")]
     ArithmeticOverflow,
 }

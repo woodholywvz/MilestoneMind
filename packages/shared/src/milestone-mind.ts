@@ -32,6 +32,7 @@ export enum MilestoneStatus {
   Approved = "approved",
   OnHold = "onHold",
   InDispute = "inDispute",
+  PaidPartial = "paidPartial",
   PaidFull = "paidFull",
   Resolved = "resolved",
   Refunded = "refunded",
@@ -43,6 +44,7 @@ export type MilestoneStatusMirror =
   | { approved: EmptyAnchorEnum }
   | { onHold: EmptyAnchorEnum }
   | { inDispute: EmptyAnchorEnum }
+  | { paidPartial: EmptyAnchorEnum }
   | { paidFull: EmptyAnchorEnum }
   | { resolved: EmptyAnchorEnum }
   | { refunded: EmptyAnchorEnum };

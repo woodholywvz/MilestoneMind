@@ -130,6 +130,7 @@ pub enum MilestoneStatus {
     Approved,
     OnHold,
     InDispute,
+    PaidPartial,
     PaidFull,
     Resolved,
     Refunded,
