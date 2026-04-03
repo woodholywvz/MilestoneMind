@@ -178,7 +178,7 @@ Commit flow:
 Start a fresh validator in a dedicated terminal:
 
 ```bash
-solana-test-validator --reset
+npm run demo:validator
 ```
 
 Then point Solana/Anchor at localnet:
@@ -187,25 +187,43 @@ Then point Solana/Anchor at localnet:
 solana config set --url http://127.0.0.1:8899
 ```
 
+Create demo wallets and fund them with SOL on localnet:
+
+```bash
+npm run demo:create-wallets
+```
+
 ## Mock USDC bootstrap
 
-Create a 6-decimal mock mint, create the client ATA, mint demo tokens to the current wallet, and save the mint address into `.env.localnet`:
+Create a 6-decimal mock mint, create the bootstrap ATA for the mint authority wallet, mint demo tokens, and save the mint address:
 
 ```bash
 npm run demo:bootstrap-mint
 ```
 
-The script writes:
+After that, mint mock USDC to the demo client wallet:
+
+```bash
+npm run demo:fund-client
+```
+
+The scripts write:
 
 - `MOCK_USDC_MINT`
 - `MOCK_USDC_CLIENT_ATA`
 - `MOCK_USDC_DECIMALS`
 - `MOCK_USDC_BOOTSTRAP_AMOUNT`
+- `DEMO_ADMIN_KEYPAIR`
+- `DEMO_CLIENT_KEYPAIR`
+- `DEMO_FREELANCER_KEYPAIR`
+- `DEMO_ASSESSOR_KEYPAIR`
+- `DEMO_CLIENT_ATA`
 
 You can override the defaults with:
 
 - `SOLANA_RPC_URL`
-- `ANCHOR_WALLET` or `DEMO_CLIENT_KEYPAIR`
+- `DEMO_ENV_FILE`
+- `ANCHOR_WALLET` or `DEMO_MINT_AUTHORITY_KEYPAIR`
 - `MOCK_USDC_AMOUNT`
 - `MOCK_USDC_ENV_FILE`
 
@@ -220,7 +238,7 @@ npm run anchor:build
 Run the Anchor tests:
 
 ```bash
-anchor test
+npm run anchor:test
 ```
 
 Current funding flow:
@@ -228,10 +246,13 @@ Current funding flow:
 1. Initialize platform with the mock USDC mint as `usdc_mint`.
 2. Create a deal in `Draft`.
 3. Create milestones for the deal.
-4. Call `fund_deal()`.
-5. Submit evidence as the freelancer.
-6. Submit an approve assessment as the whitelisted assessor.
-7. Call `release_approved_funds()` to pay the freelancer from escrow.
+4. Optionally call `cancel_draft_deal()` while the deal is still unfunded.
+5. Call `fund_deal()`.
+6. Submit evidence as the freelancer.
+7. Submit an approve assessment as the whitelisted assessor.
+8. Call `release_approved_funds()` to pay the freelancer from escrow.
+9. Optionally call `open_dispute()` and `resolve_dispute()` on the unpaid remainder.
+10. Call `finalize_deal()` after every milestone becomes terminal.
 
 `fund_deal()` transfers exactly `deal.total_amount` from the client ATA into the program-controlled vault ATA for the PDA owner derived from `[b"vault", deal]`. The vault ATA is created automatically if needed.
 
@@ -291,6 +312,50 @@ Settlement outcomes:
 
 `resolve_dispute()` auto-creates ATA accounts for both the freelancer and the client when needed. The freelancer transfer increases `milestone.released_amount`; the client refund does not.
 
+Finalize flow:
+
+1. `finalize_deal()` can be called only by the deal `client`.
+2. Allowed deal statuses for finalization:
+   - `InProgress`
+   - `Disputed`
+3. Every milestone account for the deal must be passed to the instruction in order and must be terminal:
+   - `PaidFull`
+   - `Resolved`
+   - `Refunded`
+4. If the deal vault still has tokens left, `finalize_deal()` refunds the full remainder to the client ATA.
+5. After finalization:
+   - `deal.status = Completed`
+   - `deal.settled_milestones = deal.milestone_count`
+
+## Full Demo Flow
+
+From zero on localnet:
+
+1. `npm install`
+2. `npm run demo:validator`
+3. `solana config set --url http://127.0.0.1:8899`
+4. `npm run demo:create-wallets`
+5. `npm run demo:bootstrap-mint`
+6. `npm run demo:fund-client`
+7. `npm run anchor:build`
+8. `npm run anchor:test`
+
+What this prepares:
+
+- a running local validator
+- demo admin/client/freelancer/assessor wallets
+- a mock USDC mint with 6 decimals
+- funded demo client wallet ready for creating and funding deals
+
+Current deal lifecycle:
+
+- `Draft`
+- `Cancelled`
+- `Funded`
+- `InProgress`
+- `Disputed`
+- `Completed`
+
 ## Root scripts
 
 ```bash
@@ -304,5 +369,8 @@ npm run lint
 npm run test
 npm run anchor:build
 npm run anchor:test
+npm run demo:validator
+npm run demo:create-wallets
 npm run demo:bootstrap-mint
+npm run demo:fund-client
 ```

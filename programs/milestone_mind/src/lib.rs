@@ -6,8 +6,9 @@ pub mod instructions;
 pub mod state;
 
 use instructions::{
-    CreateDeal, CreateMilestone, FundDeal, InitializePlatform, OpenDispute,
-    ReleaseApprovedFunds, ResolveDispute, SubmitAssessment, SubmitEvidence,
+    CancelDraftDeal, CreateDeal, CreateMilestone, FinalizeDeal, FundDeal,
+    InitializePlatform, OpenDispute, ReleaseApprovedFunds, ResolveDispute, SubmitAssessment,
+    SubmitEvidence,
 };
 
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkgMQHG7d43x");
@@ -42,6 +43,10 @@ pub mod milestone_mind {
         amount: u64,
     ) -> Result<()> {
         instructions::create_milestone::handler(ctx, index, title, amount)
+    }
+
+    pub fn cancel_draft_deal(ctx: Context<CancelDraftDeal>) -> Result<()> {
+        instructions::cancel_draft_deal::handler(ctx)
     }
 
     pub fn fund_deal(ctx: Context<FundDeal>) -> Result<()> {
@@ -107,5 +112,9 @@ pub mod milestone_mind {
         freelancer_split_bps: u16,
     ) -> Result<()> {
         instructions::resolve_dispute::handler(ctx, milestone_index, freelancer_split_bps)
+    }
+
+    pub fn finalize_deal(ctx: Context<FinalizeDeal>) -> Result<()> {
+        instructions::finalize_deal::handler(ctx)
     }
 }

@@ -1,5 +1,7 @@
+pub mod cancel_draft_deal;
 pub mod create_deal;
 pub mod create_milestone;
+pub mod finalize_deal;
 pub mod fund_deal;
 pub mod initialize_platform;
 pub mod open_dispute;
@@ -8,8 +10,10 @@ pub mod resolve_dispute;
 pub mod submit_assessment;
 pub mod submit_evidence;
 
+pub use cancel_draft_deal::*;
 pub use create_deal::*;
 pub use create_milestone::*;
+pub use finalize_deal::*;
 pub use fund_deal::*;
 pub use initialize_platform::*;
 pub use open_dispute::*;

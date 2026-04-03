@@ -369,6 +369,51 @@ test("milestone_mind happy path", async (t) => {
       .rpc();
   }
 
+  async function cancelDraftDealFor(deal, caller = client.publicKey, signers = []) {
+    await program.methods
+      .cancelDraftDeal()
+      .accounts({
+        client: caller,
+        deal,
+      })
+      .signers(signers)
+      .rpc();
+  }
+
+  async function finalizeDealFor({
+    deal,
+    milestoneAccounts,
+    vaultAuthority,
+    vaultTokenAccount: vaultToken,
+    clientSigner = client.publicKey,
+    clientToken = clientTokenAccount,
+    signers = [],
+  }) {
+    await program.methods
+      .finalizeDeal()
+      .accounts({
+        platform: platformPda,
+        client: clientSigner,
+        deal,
+        mint: usdcMint,
+        vaultAuthority,
+        vaultTokenAccount: vaultToken,
+        clientTokenAccount: clientToken,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: web3.SystemProgram.programId,
+      })
+      .remainingAccounts(
+        milestoneAccounts.map((pubkey) => ({
+          pubkey,
+          isSigner: false,
+          isWritable: false,
+        })),
+      )
+      .signers(signers)
+      .rpc();
+  }
+
   for (const [index, milestoneTitle] of milestoneTitles.entries()) {
     await program.methods
       .createMilestone(index, milestoneTitle, milestoneAmounts[index])
@@ -1006,9 +1051,255 @@ test("milestone_mind happy path", async (t) => {
     assert.equal(vaultBalanceAfter, vaultBalanceBefore - settlementAmount);
   });
 
+  await t.test("finalize fails if not all milestones terminal", async () => {
+    const finalizeDealTotal = new anchor.BN(1_200_000);
+    const finalizeMilestoneAmounts = [
+      new anchor.BN(400_000),
+      new anchor.BN(600_000),
+    ];
+    const [finalizeDealPda] = web3.PublicKey.findProgramAddressSync(
+      [DEAL_SEED, u64Le(2)],
+      program.programId,
+    );
+    const finalizeMilestonePdas = finalizeMilestoneAmounts.map((_, index) =>
+      web3.PublicKey.findProgramAddressSync(
+        [MILESTONE_SEED, finalizeDealPda.toBuffer(), u16Le(index)],
+        program.programId,
+      )[0],
+    );
+    const finalizeAssessmentPdas = finalizeMilestonePdas.map((milestonePda) =>
+      web3.PublicKey.findProgramAddressSync(
+        [ASSESSMENT_SEED, milestonePda.toBuffer()],
+        program.programId,
+      )[0],
+    );
+    const [finalizeVaultAuthorityPda] = web3.PublicKey.findProgramAddressSync(
+      [VAULT_SEED, finalizeDealPda.toBuffer()],
+      program.programId,
+    );
+    const finalizeVaultTokenAccount = getAssociatedTokenAddressSync(
+      usdcMint,
+      finalizeVaultAuthorityPda,
+      true,
+    );
+
+    await program.methods
+      .createDeal(freelancer.publicKey, "Finalize with vault refund", 2, finalizeDealTotal)
+      .accounts({
+        platform: platformPda,
+        client: client.publicKey,
+        deal: finalizeDealPda,
+        systemProgram: web3.SystemProgram.programId,
+      })
+      .rpc();
+
+    for (const [index, amount] of finalizeMilestoneAmounts.entries()) {
+      await program.methods
+        .createMilestone(index, `Finalize milestone ${index + 1}`, amount)
+        .accounts({
+          client: client.publicKey,
+          deal: finalizeDealPda,
+          milestone: finalizeMilestonePdas[index],
+          systemProgram: web3.SystemProgram.programId,
+        })
+        .rpc();
+    }
+
+    await program.methods
+      .fundDeal()
+      .accounts({
+        platform: platformPda,
+        client: client.publicKey,
+        deal: finalizeDealPda,
+        mint: usdcMint,
+        vaultAuthority: finalizeVaultAuthorityPda,
+        clientTokenAccount,
+        vaultTokenAccount: finalizeVaultTokenAccount,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: web3.SystemProgram.programId,
+      })
+      .rpc();
+
+    for (const [index, amount] of finalizeMilestoneAmounts.entries()) {
+      await program.methods
+        .submitEvidence(
+          index,
+          `ipfs://milestonemind/finalize-proof-${index + 1}`,
+          Array.from(hexToEvidenceHash(`${90 + index}`.repeat(32))),
+          `Finalize evidence package ${index + 1} for amount ${amount.toString()}.`,
+          2,
+        )
+        .accounts({
+          freelancer: freelancer.publicKey,
+          deal: finalizeDealPda,
+          milestone: finalizeMilestonePdas[index],
+        })
+        .signers([freelancer])
+        .rpc();
+    }
+
+    await program.methods
+      .submitAssessment(
+        0,
+        assessmentDecision("approve"),
+        9_500,
+        10_000,
+        Array.from(hexToEvidenceHash("99".repeat(32))),
+        "Admin approved the first finalize milestone for full payout.",
+      )
+      .accounts({
+        platform: platformPda,
+        assessor: assessor.publicKey,
+        deal: finalizeDealPda,
+        milestone: finalizeMilestonePdas[0],
+        assessment: finalizeAssessmentPdas[0],
+        systemProgram: web3.SystemProgram.programId,
+      })
+      .signers([assessor])
+      .rpc();
+
+    await program.methods
+      .submitAssessment(
+        1,
+        assessmentDecision("approve"),
+        9_600,
+        10_000,
+        Array.from(hexToEvidenceHash("aa".repeat(32))),
+        "Admin approved the second finalize milestone for full payout.",
+      )
+      .accounts({
+        platform: platformPda,
+        assessor: assessor.publicKey,
+        deal: finalizeDealPda,
+        milestone: finalizeMilestonePdas[1],
+        assessment: finalizeAssessmentPdas[1],
+        systemProgram: web3.SystemProgram.programId,
+      })
+      .signers([assessor])
+      .rpc();
+
+    await program.methods
+      .releaseApprovedFunds(0)
+      .accounts({
+        platform: platformPda,
+        authority: client.publicKey,
+        deal: finalizeDealPda,
+        milestone: finalizeMilestonePdas[0],
+        assessment: finalizeAssessmentPdas[0],
+        mint: usdcMint,
+        vaultAuthority: finalizeVaultAuthorityPda,
+        vaultTokenAccount: finalizeVaultTokenAccount,
+        freelancer: freelancer.publicKey,
+        freelancerTokenAccount,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: web3.SystemProgram.programId,
+      })
+      .rpc();
+
+    await assert.rejects(
+      finalizeDealFor({
+        deal: finalizeDealPda,
+        milestoneAccounts: finalizeMilestonePdas,
+        vaultAuthority: finalizeVaultAuthorityPda,
+        vaultTokenAccount: finalizeVaultTokenAccount,
+      }),
+    );
+
+    await assert.rejects(
+      finalizeDealFor({
+        deal: finalizeDealPda,
+        milestoneAccounts: finalizeMilestonePdas,
+        vaultAuthority: finalizeVaultAuthorityPda,
+        vaultTokenAccount: finalizeVaultTokenAccount,
+        clientSigner: freelancer.publicKey,
+        clientToken: freelancerTokenAccount,
+        signers: [freelancer],
+      }),
+    );
+
+    await program.methods
+      .releaseApprovedFunds(1)
+      .accounts({
+        platform: platformPda,
+        authority: assessor.publicKey,
+        deal: finalizeDealPda,
+        milestone: finalizeMilestonePdas[1],
+        assessment: finalizeAssessmentPdas[1],
+        mint: usdcMint,
+        vaultAuthority: finalizeVaultAuthorityPda,
+        vaultTokenAccount: finalizeVaultTokenAccount,
+        freelancer: freelancer.publicKey,
+        freelancerTokenAccount,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: web3.SystemProgram.programId,
+      })
+      .signers([assessor])
+      .rpc();
+
+    const clientBalanceBeforeFinalize = (await getAccount(
+      provider.connection,
+      clientTokenAccount,
+    )).amount;
+    const vaultBalanceBeforeFinalize = (await getAccount(
+      provider.connection,
+      finalizeVaultTokenAccount,
+    )).amount;
+
+    assert.equal(vaultBalanceBeforeFinalize, BigInt(200_000));
+
+    await finalizeDealFor({
+      deal: finalizeDealPda,
+      milestoneAccounts: finalizeMilestonePdas,
+      vaultAuthority: finalizeVaultAuthorityPda,
+      vaultTokenAccount: finalizeVaultTokenAccount,
+    });
+
+    const finalizedDeal = await program.account.deal.fetch(finalizeDealPda);
+    const clientBalanceAfterFinalize = (await getAccount(
+      provider.connection,
+      clientTokenAccount,
+    )).amount;
+    const vaultBalanceAfterFinalize = (await getAccount(
+      provider.connection,
+      finalizeVaultTokenAccount,
+    )).amount;
+
+    assert.equal(enumKey(finalizedDeal.status), "completed");
+    assert.equal(finalizedDeal.settledMilestones, 2);
+    assert.equal(clientBalanceAfterFinalize, clientBalanceBeforeFinalize + BigInt(200_000));
+    assert.equal(vaultBalanceAfterFinalize, BigInt(0));
+  });
+
+  await t.test("cancel draft success", async () => {
+    const [cancelDealPda] = web3.PublicKey.findProgramAddressSync(
+      [DEAL_SEED, u64Le(3)],
+      program.programId,
+    );
+
+    await program.methods
+      .createDeal(freelancer.publicKey, "Cancelable draft deal", 1, new anchor.BN(500_000))
+      .accounts({
+        platform: platformPda,
+        client: client.publicKey,
+        deal: cancelDealPda,
+        systemProgram: web3.SystemProgram.programId,
+      })
+      .rpc();
+
+    await cancelDraftDealFor(cancelDealPda);
+
+    const cancelledDeal = await program.account.deal.fetch(cancelDealPda);
+
+    assert.equal(enumKey(cancelledDeal.status), "cancelled");
+    assert.equal(cancelledDeal.fundedAmount.toNumber(), 0);
+  });
+
   await t.test("cannot submit evidence before deal funding", async () => {
     const [unfundedDealPda] = web3.PublicKey.findProgramAddressSync(
-      [DEAL_SEED, u64Le(2)],
+      [DEAL_SEED, u64Le(4)],
       program.programId,
     );
 

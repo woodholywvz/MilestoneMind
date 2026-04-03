@@ -68,6 +68,16 @@ pub enum MilestoneMindError {
     InvalidResolveDealStatus,
     #[msg("The milestone is not in a status that allows dispute resolution.")]
     InvalidResolveMilestoneStatus,
+    #[msg("The deal is not in a status that allows cancellation.")]
+    InvalidCancelDealStatus,
+    #[msg("The deal is not in a status that allows finalization.")]
+    InvalidFinalizeDealStatus,
+    #[msg("Draft deals can only be cancelled before any funding exists.")]
+    CannotCancelFundedDeal,
+    #[msg("All milestones must be terminal before finalizing the deal.")]
+    FinalizeRequiresAllMilestonesTerminal,
+    #[msg("The finalize instruction must receive every milestone account in order.")]
+    InvalidFinalizeMilestoneSet,
     #[msg("Confidence basis points must be between 0 and 10000.")]
     InvalidConfidenceBps,
     #[msg("Approved basis points must be between 0 and 10000.")]

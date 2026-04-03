@@ -20,7 +20,10 @@
     "anchor:build": "anchor build && npm run anchor:sync-idl",
     "anchor:sync-idl": "node ./scripts/sync-anchor-idl.mjs",
     "anchor:test": "node --test tests/milestone-mind.test.mjs",
-    "demo:bootstrap-mint": "node ./scripts/bootstrap-mock-usdc.mjs"
+    "demo:validator": "node ./scripts/run-local-validator.mjs",
+    "demo:create-wallets": "node ./scripts/create-demo-wallets.mjs",
+    "demo:bootstrap-mint": "node ./scripts/bootstrap-mock-usdc.mjs",
+    "demo:fund-client": "node ./scripts/fund-demo-client.mjs"
   },
   "devDependencies": {
     "@coral-xyz/anchor": "^0.30.1",
