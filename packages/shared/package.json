@@ -9,6 +9,14 @@
       "types": "./src/index.ts",
       "default": "./dist/index.js"
     },
+    "./idl": {
+      "types": "./src/idl.ts",
+      "default": "./dist/idl.js"
+    },
+    "./onchain": {
+      "types": "./src/onchain.ts",
+      "default": "./dist/onchain.js"
+    },
     "./assessment": {
       "types": "./src/assessment.ts",
       "default": "./dist/assessment.js"
@@ -35,6 +43,8 @@
     "idl"
   ],
   "dependencies": {
+    "@coral-xyz/anchor": "^0.30.1",
+    "@solana/web3.js": "^1.98.4",
     "zod": "^3.24.1"
   },
   "scripts": {

@@ -1,6 +1,8 @@
 export * from "./env.js";
 export * from "./evidence.js";
+export * from "./idl.js";
 export * from "./milestone-mind.js";
+export * from "./onchain.js";
 export * from "./types.js";
 export {
   assessRequestSchema,

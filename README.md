@@ -27,6 +27,32 @@ npm install
 python -m pip install -r services/ai/requirements.txt -r services/ai/requirements-dev.txt
 ```
 
+## Web dashboard
+
+Run the read-only web dashboard:
+
+```bash
+npm run dev:web
+```
+
+Production run after build:
+
+```bash
+npm run build --workspace @milestone-mind/web
+npm run start --workspace @milestone-mind/web
+```
+
+Web environment variables:
+
+- `NEXT_PUBLIC_RPC_URL` default `http://127.0.0.1:8899`
+- `NEXT_PUBLIC_PROGRAM_ID` default `Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkgMQHG7d43x`
+- `NEXT_PUBLIC_CLUSTER` one of `localnet`, `devnet`, `testnet`, `mainnet-beta`
+
+Routes:
+
+- `/` hero, wallet connect, and `All Deals` list from on-chain `Deal` accounts
+- `/deals/[dealPubkey]` deal summary, milestone list, and assessment summaries when present
+
 ## AI service
 
 Run the AI service:

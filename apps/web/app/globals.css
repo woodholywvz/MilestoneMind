@@ -1,8 +1,22 @@
 :root {
   color-scheme: light;
-  font-family: "Segoe UI", sans-serif;
-  background: #f3f0e8;
-  color: #1d1d1d;
+  --bg: #f6f2ea;
+  --surface: rgba(255, 252, 247, 0.84);
+  --line: rgba(68, 48, 21, 0.12);
+  --text: #24180b;
+  --muted: #6b5843;
+  --accent: #b86f2a;
+  --accent-soft: rgba(184, 111, 42, 0.14);
+  --success: #0f7a52;
+  --success-soft: rgba(15, 122, 82, 0.12);
+  --warning: #8b6400;
+  --warning-soft: rgba(139, 100, 0, 0.14);
+  --danger: #a63f2a;
+  --danger-soft: rgba(166, 63, 42, 0.14);
+  --info: #2557a7;
+  --info-soft: rgba(37, 87, 167, 0.12);
+  --shadow: 0 22px 50px rgba(74, 50, 20, 0.12);
+  font-family: "Avenir Next", "IBM Plex Sans", "Segoe UI", sans-serif;
 }
 
 * {
@@ -17,37 +31,328 @@ body {
 
 body {
   min-height: 100vh;
+  color: var(--text);
+  background:
+    radial-gradient(circle at top left, rgba(221, 182, 128, 0.55), transparent 28%),
+    radial-gradient(circle at top right, rgba(146, 123, 89, 0.22), transparent 24%),
+    linear-gradient(180deg, #faf7f1 0%, #efe3d2 100%);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.chrome-shell {
+  min-height: 100vh;
+}
+
+.chrome-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  padding: 1rem 1.5rem 0;
+  backdrop-filter: blur(14px);
 }
 
 .page-shell {
-  min-height: 100vh;
+  padding: 1rem 1.5rem 3rem;
+}
+
+.page-content {
+  width: min(100%, 80rem);
+  margin: 0 auto;
   display: grid;
-  place-items: center;
-  padding: 2rem;
-  background:
-    radial-gradient(circle at top, rgba(185, 150, 104, 0.35), transparent 38%),
-    linear-gradient(180deg, #faf8f2 0%, #efe7d7 100%);
+  gap: 1.5rem;
+}
+
+.detail-page {
+  gap: 1.25rem;
+}
+
+.wallet-bar,
+.panel,
+.hero-card,
+.deal-card,
+.milestone-card,
+.assessment-card {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.wallet-bar {
+  width: min(100%, 80rem);
+  margin: 0 auto;
+  padding: 1rem 1.25rem;
+  border-radius: 1.4rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.wallet-title {
+  margin: 0.2rem 0 0;
+  font-size: 1.1rem;
+}
+
+.wallet-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.cluster-pill,
+.rpc-pill,
+.wallet-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.75);
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.wallet-pill-muted {
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.wallet-button.wallet-adapter-button-trigger {
+  width: fit-content;
+  background: linear-gradient(135deg, #3f2811 0%, #b86f2a 100%);
+  color: #fff8ef;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 0.94rem;
+  min-height: 2.75rem;
+}
+
+.hero-card,
+.panel {
+  border-radius: 1.75rem;
+  padding: 1.5rem;
 }
 
 .hero-card {
-  width: min(100%, 28rem);
-  padding: 3rem;
-  border-radius: 1.5rem;
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(29, 29, 29, 0.08);
-  box-shadow: 0 20px 45px rgba(74, 56, 34, 0.12);
+  display: grid;
+  gap: 1rem;
+  background:
+    linear-gradient(160deg, rgba(255, 249, 239, 0.96) 0%, rgba(247, 235, 216, 0.88) 100%),
+    radial-gradient(circle at top right, rgba(184, 111, 42, 0.18), transparent 34%);
 }
 
-.eyebrow {
-  margin: 0 0 0.75rem;
+.hero-copy,
+.muted-copy,
+.evidence-copy,
+.assessment-summary {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.section-eyebrow,
+.sub-eyebrow,
+.milestone-index,
+.back-link {
+  margin: 0;
   text-transform: uppercase;
-  letter-spacing: 0.16em;
-  font-size: 0.75rem;
-  color: #7b6242;
+  letter-spacing: 0.14em;
+  font-size: 0.74rem;
+  color: var(--accent);
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 0.7rem;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  line-height: 1.02;
+  letter-spacing: -0.03em;
 }
 
 h1 {
+  font-size: clamp(2.35rem, 7vw, 4.8rem);
+}
+
+h2 {
+  font-size: clamp(1.4rem, 3vw, 2rem);
+}
+
+h3 {
+  font-size: 1.15rem;
+}
+
+.section-header,
+.deal-card-top,
+.assessment-header,
+.milestone-header,
+.detail-hero,
+.deal-card-footer {
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.deal-grid,
+.milestone-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.deal-grid {
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+}
+
+.deal-card,
+.milestone-card {
+  border-radius: 1.35rem;
+  padding: 1.2rem;
+}
+
+.detail-grid {
+  margin: 1rem 0 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.9rem 1.2rem;
+}
+
+.compact-grid {
+  margin-top: 0.8rem;
+}
+
+.detail-grid dt {
+  margin: 0 0 0.2rem;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+
+.detail-grid dd {
   margin: 0;
-  font-size: clamp(2rem, 7vw, 3.5rem);
-  line-height: 0.95;
+  font-size: 0.98rem;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.45rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+
+.status-neutral {
+  color: #5c4b38;
+  background: rgba(92, 75, 56, 0.1);
+  border-color: rgba(92, 75, 56, 0.12);
+}
+
+.status-info {
+  color: var(--info);
+  background: var(--info-soft);
+  border-color: rgba(37, 87, 167, 0.16);
+}
+
+.status-success {
+  color: var(--success);
+  background: var(--success-soft);
+  border-color: rgba(15, 122, 82, 0.16);
+}
+
+.status-warning {
+  color: var(--warning);
+  background: var(--warning-soft);
+  border-color: rgba(139, 100, 0, 0.18);
+}
+
+.status-danger {
+  color: var(--danger);
+  background: var(--danger-soft);
+  border-color: rgba(166, 63, 42, 0.18);
+}
+
+.link-row {
+  display: flex;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.text-link,
+.primary-link {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.primary-link {
+  display: inline-flex;
+  width: fit-content;
+  padding: 0.8rem 1.1rem;
+  border-radius: 999px;
+  background: var(--accent-soft);
+}
+
+.evidence-block {
+  display: grid;
+  gap: 0.9rem;
+  margin-top: 1rem;
+}
+
+.assessment-card {
+  margin-top: 1rem;
+  border-radius: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.empty-state,
+.loading-panel,
+.error-panel {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.error-panel {
+  border-color: rgba(166, 63, 42, 0.2);
+  background: rgba(255, 246, 244, 0.9);
+}
+
+@media (max-width: 720px) {
+  .chrome-header,
+  .page-shell {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .wallet-bar,
+  .hero-card,
+  .panel,
+  .deal-card,
+  .milestone-card {
+    border-radius: 1.1rem;
+  }
+
+  .section-header,
+  .deal-card-top,
+  .assessment-header,
+  .milestone-header,
+  .detail-hero,
+  .deal-card-footer {
+    flex-direction: column;
+  }
+
+  .wallet-button.wallet-adapter-button-trigger {
+    width: 100%;
+    justify-content: center;
+  }
 }
