@@ -54,7 +54,7 @@ export function AssessmentExecutorPanel({
   const [result, setResult] = useState<AssessmentExecutionResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [pendingMode, setPendingMode] = useState<"dry" | "commit" | null>(null);
-  const role = useMemo(
+  const roleState = useMemo(
     () => resolvePanelRole(wallet.publicKey?.toBase58() ?? null, {
       admin: platformAdminPubkey,
       assessor: platformAssessorPubkey,
@@ -63,7 +63,7 @@ export function AssessmentExecutorPanel({
   );
   const canAssess = milestone.statusValue === MilestoneStatus.EvidenceSubmitted;
 
-  if (!role) {
+  if (!roleState.visible) {
     return null;
   }
 
@@ -111,7 +111,7 @@ export function AssessmentExecutorPanel({
           <p className="section-eyebrow">Assessment Panel</p>
           <h4>Executor-driven assessor flow</h4>
         </div>
-        <span className="wallet-pill">{role}</span>
+        <span className="wallet-pill">{roleState.label}</span>
       </div>
 
       <p className="muted-copy">
@@ -131,7 +131,7 @@ export function AssessmentExecutorPanel({
           </button>
           <button
             className="primary-button"
-            disabled={pendingMode !== null}
+            disabled={pendingMode !== null || !roleState.canCommit}
             onClick={handleCommitAssess}
             type="button"
           >
@@ -143,6 +143,12 @@ export function AssessmentExecutorPanel({
           Assessment actions are available only while the milestone status is Evidence Submitted.
         </p>
       )}
+
+      {canAssess && !roleState.canCommit ? (
+        <p className="muted-copy">
+          Commit stays locked unless the connected wallet matches `platform.assessor`.
+        </p>
+      ) : null}
 
       {errorMessage ? <p className="field-error submit-error">{errorMessage}</p> : null}
       {result ? <AssessmentExecutorResultCard result={result} /> : null}
@@ -226,27 +232,27 @@ function AssessmentExecutorResultCard({
 function resolvePanelRole(
   walletPubkey: string | null,
   platform: { admin: string | null; assessor: string | null },
-): string | null {
+): { visible: boolean; canCommit: boolean; label: string } {
   if (!walletPubkey) {
-    return null;
+    return { visible: false, canCommit: false, label: "Viewer" };
   }
 
   const isAdmin = walletPubkey === platform.admin;
   const isAssessor = walletPubkey === platform.assessor;
 
   if (isAdmin && isAssessor) {
-    return "Admin / Assessor";
+    return { visible: true, canCommit: true, label: "Admin / Assessor" };
   }
 
   if (isAdmin) {
-    return "Admin";
+    return { visible: true, canCommit: false, label: "Admin" };
   }
 
   if (isAssessor) {
-    return "Assessor";
+    return { visible: true, canCommit: true, label: "Assessor" };
   }
 
-  return null;
+  return { visible: false, canCommit: false, label: "Viewer" };
 }
 
 function toExecutorMessage(error: unknown): string {

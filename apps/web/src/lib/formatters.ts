@@ -14,6 +14,7 @@ export type StatusTone = "neutral" | "info" | "success" | "warning" | "danger";
 type AnchorEnumMirror = Record<string, Record<string, never>>;
 type NumericLike = bigint | number | string | { toString(): string };
 const TOKEN_AMOUNT_PATTERN = /^\d+(?:\.\d{0,6})?$/;
+const BPS_PATTERN = /^\d+$/;
 
 export function formatTokenAmount(
   value: NumericLike,
@@ -48,6 +49,26 @@ export function parseTokenAmountInput(
 export function isPositiveTokenAmount(value: string): boolean {
   const parsed = parseTokenAmountInput(value);
   return parsed !== null && parsed > 0n;
+}
+
+export function parseBpsInput(value: string): number | null {
+  const normalized = value.trim();
+
+  if (!normalized || !BPS_PATTERN.test(normalized)) {
+    return null;
+  }
+
+  const parsed = Number.parseInt(normalized, 10);
+
+  if (!Number.isSafeInteger(parsed) || parsed < 0 || parsed > 10_000) {
+    return null;
+  }
+
+  return parsed;
+}
+
+export function computeBpsAmount(amount: bigint, bps: number): bigint {
+  return (amount * BigInt(bps)) / 10_000n;
 }
 
 export function formatBps(value: number): string {

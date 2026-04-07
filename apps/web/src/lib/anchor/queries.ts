@@ -60,9 +60,13 @@ export interface AssessmentView {
   summary: string;
   decisionLabel: string;
   decisionTone: ReturnType<typeof formatAssessmentDecision>["tone"];
+  decisionValue: ReturnType<typeof formatAssessmentDecision>["value"];
+  confidenceBps: number;
   confidenceLabel: string;
+  approvedBps: number;
   approvedLabel: string;
   rationaleHashHex: string;
+  createdAtUnix: number;
   createdAtLabel: string;
 }
 
@@ -73,12 +77,15 @@ export interface MilestoneView {
   statusLabel: string;
   statusTone: ReturnType<typeof formatMilestoneStatus>["tone"];
   statusValue: ReturnType<typeof formatMilestoneStatus>["value"];
+  amountRaw: string;
   amountLabel: string;
+  releasedAmountRaw: string;
   releasedAmountLabel: string;
   evidenceUri: string;
   evidenceHashHex: string;
   evidenceSummary: string;
   attachmentCount: number;
+  submittedAtUnix: number;
   submittedAtLabel: string;
   assessment: AssessmentView | null;
 }
@@ -93,6 +100,7 @@ export interface DealDetailView {
   statusLabel: string;
   statusTone: ReturnType<typeof formatDealStatus>["tone"];
   statusValue: ReturnType<typeof formatDealStatus>["value"];
+  totalAmountRaw: string;
   clientPubkey: string;
   clientExplorerHref: string;
   freelancerPubkey: string;
@@ -101,10 +109,12 @@ export interface DealDetailView {
   platformAssessorPubkey: string | null;
   mintPubkey: string;
   mintExplorerHref: string;
+  fundedAmountRaw: string;
   totalAmountLabel: string;
   fundedAmountLabel: string;
   milestoneCount: number;
   settledMilestones: number;
+  createdAtUnix: number;
   createdAtLabel: string;
   milestones: MilestoneView[];
 }
@@ -182,12 +192,15 @@ export async function fetchDealDetail(dealPubkey: string): Promise<DealDetailVie
         statusLabel: milestoneStatus.label,
         statusTone: milestoneStatus.tone,
         statusValue: milestoneStatus.value,
+        amountRaw: account.amount.toString(),
         amountLabel: formatTokenAmount(account.amount),
+        releasedAmountRaw: account.releasedAmount.toString(),
         releasedAmountLabel: formatTokenAmount(account.releasedAmount),
         evidenceUri: account.evidenceUri,
         evidenceHashHex: toHex(account.evidenceHash),
         evidenceSummary: account.evidenceSummary,
         attachmentCount: account.attachmentCount,
+        submittedAtUnix: parseUnix(account.lastSubmittedAt),
         submittedAtLabel: formatTimestamp(account.lastSubmittedAt),
         assessment: assessment
           ? mapAssessmentView(assessmentPda.publicKey.toBase58(), assessment)
@@ -209,6 +222,7 @@ export async function fetchDealDetail(dealPubkey: string): Promise<DealDetailVie
     statusLabel: dealStatus.label,
     statusTone: dealStatus.tone,
     statusValue: dealStatus.value,
+    totalAmountRaw: deal.totalAmount.toString(),
     clientPubkey: deal.client.toBase58(),
     clientExplorerHref: buildExplorerAccountUrl(deal.client.toBase58()),
     freelancerPubkey: deal.freelancer.toBase58(),
@@ -217,10 +231,12 @@ export async function fetchDealDetail(dealPubkey: string): Promise<DealDetailVie
     platformAssessorPubkey: platform?.assessor.toBase58() ?? null,
     mintPubkey: deal.mint.toBase58(),
     mintExplorerHref: buildExplorerAccountUrl(deal.mint.toBase58()),
+    fundedAmountRaw: deal.fundedAmount.toString(),
     totalAmountLabel: formatTokenAmount(deal.totalAmount),
     fundedAmountLabel: formatTokenAmount(deal.fundedAmount),
     milestoneCount: deal.milestoneCount,
     settledMilestones: deal.settledMilestones,
+    createdAtUnix: parseUnix(deal.createdAt),
     createdAtLabel: formatTimestamp(deal.createdAt),
     milestones: milestoneViews,
   };
@@ -267,13 +283,22 @@ function mapAssessmentView(pubkey: string, assessment: AssessmentAccount): Asses
     summary: assessment.summary,
     decisionLabel: decision.label,
     decisionTone: decision.tone,
+    decisionValue: decision.value,
+    confidenceBps: assessment.confidenceBps,
     confidenceLabel: formatBps(assessment.confidenceBps),
+    approvedBps: assessment.approvedBps,
     approvedLabel: formatBps(assessment.approvedBps),
     rationaleHashHex: toHex(assessment.rationaleHash),
+    createdAtUnix: parseUnix(assessment.createdAt),
     createdAtLabel: formatTimestamp(assessment.createdAt),
   };
 }
 
 function toHex(value: ArrayLike<number>): string {
   return Array.from(value, (item) => item.toString(16).padStart(2, "0")).join("");
+}
+
+function parseUnix(value: { toString(): string }): number {
+  const parsed = Number.parseInt(value.toString(), 10);
+  return Number.isFinite(parsed) ? parsed : 0;
 }

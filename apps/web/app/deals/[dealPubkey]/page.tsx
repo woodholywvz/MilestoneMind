@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { DealActionPanel } from "../../../src/components/DealActionPanel";
+import { DealTimeline } from "../../../src/components/DealTimeline";
 import { MilestoneList } from "../../../src/components/MilestoneList";
 import { StatusBadge } from "../../../src/components/StatusBadge";
 import { fetchDealDetail } from "../../../src/lib/anchor/queries";
@@ -122,11 +124,23 @@ export default async function DealDetailPage({
           </dl>
         </section>
 
+        <DealActionPanel
+          clientPubkey={deal.clientPubkey}
+          dealPubkey={deal.pubkey}
+          dealStatusValue={deal.statusValue}
+          milestones={deal.milestones}
+          mintPubkey={deal.mintPubkey}
+        />
+
+        <DealTimeline deal={deal} />
+
         <MilestoneList
           dealPubkey={deal.pubkey}
           dealId={deal.dealId}
           dealStatusValue={deal.statusValue}
+          clientPubkey={deal.clientPubkey}
           freelancerPubkey={deal.freelancerPubkey}
+          mintPubkey={deal.mintPubkey}
           platformAdminPubkey={deal.platformAdminPubkey}
           platformAssessorPubkey={deal.platformAssessorPubkey}
           milestones={deal.milestones}

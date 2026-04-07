@@ -53,7 +53,7 @@ Routes:
 
 - `/` hero, wallet connect, and `All Deals` list from on-chain `Deal` accounts
 - `/create` wallet-driven create flow for `create_deal`, `create_milestone`, and `fund_deal`
-- `/deals/[dealPubkey]` deal summary, milestone list, freelancer evidence submit, and assessor/admin dry-or-commit assessment panel
+- `/deals/[dealPubkey]` deal summary, timeline, freelancer evidence submit, assessor/admin assessment panel, settlement actions, and finalize/cancel controls
 
 Create flow:
 
@@ -75,6 +75,30 @@ Assessment panel flow:
 4. Review `decision`, `confidenceBps`, `approvedBps`, `ruleTrace`, and `rationaleHashHex`.
 5. Use `Commit assess` to call the executor commit endpoint.
 6. After commit, the page refreshes and the on-chain assessment summary appears on the milestone.
+
+Settlement and lifecycle actions in the UI:
+
+- client:
+  - `Release approved funds`
+  - `Open dispute`
+  - `Finalize deal`
+  - `Cancel draft deal`
+- freelancer:
+  - `Submit evidence`
+  - `Open dispute`
+- assessor:
+  - `Dry assess`
+  - `Commit assess`
+  - optionally `Release approved funds`
+- admin:
+  - `Dry assess`
+  - `Resolve dispute`
+
+Timeline UX:
+
+1. Deal detail renders a lifecycle timeline from account state only.
+2. The timeline marks deal created, funded, evidence submitted, assessment committed, funds released, dispute opened/resolved, and deal finalized.
+3. No indexer is required; the view is reconstructed from `Deal`, `Milestone`, and `Assessment` accounts.
 
 ## AI service
 
@@ -266,6 +290,68 @@ Commit response adds:
 
 - `txSignature`
 - `milestoneStatus`
+
+## One-Pass Demo Guide
+
+For the full UI demo, use separate terminals:
+
+1. `npm run demo:validator`
+2. `npm run dev:ai`
+3. `npm run dev:executor`
+4. `npm run dev:web`
+
+Then in the browser:
+
+1. Connect the demo client wallet and open `/create`.
+2. Create and fund a deal with 1-2 milestones.
+3. Switch to the freelancer wallet on the deal page and submit evidence.
+4. Switch to the assessor wallet and run `Dry assess`, then `Commit assess`.
+5. Switch to the client wallet and release approved funds.
+6. If needed, open a dispute as client or freelancer.
+7. Switch to the admin wallet and resolve the dispute with a split preview.
+8. Switch back to the client wallet and finalize the deal once all milestones are terminal.
+
+Expected UI checkpoints:
+
+- the deal card appears on the dashboard after create+fund
+- milestone cards show current evidence, assessment, and settlement controls by role
+- the timeline moves forward as state changes on-chain
+- finalize becomes available only after every milestone reaches `PaidFull`, `Resolved`, or `Refunded`
+
+## Demo Roles
+
+- `client`: funds escrow, can release approved funds, open disputes, cancel draft deals, and finalize completed deals
+- `freelancer`: submits milestone evidence and can open disputes
+- `assessor`: runs AI dry-run and commit assessment, and may release approved funds
+- `admin`: resolves disputes and can inspect assessment dry-runs
+
+## End-to-End Demo Script
+
+`demo:e2e` is the CLI happy-path runner. It expects:
+
+- a fresh local validator already running
+- the AI service already running
+
+Command:
+
+```bash
+npm run demo:e2e
+```
+
+What it does:
+
+1. creates demo wallets
+2. bootstraps a mock 6-decimal USDC mint
+3. funds the demo client wallet
+4. initializes platform if needed
+5. creates a demo deal and milestones
+6. funds escrow
+7. submits evidence as the freelancer
+8. commits assessment via the executor assessment logic
+9. releases funds
+10. finalizes the deal
+
+The script prints every step and each transaction signature.
 
 ## Local validator
 
@@ -467,4 +553,5 @@ npm run demo:validator
 npm run demo:create-wallets
 npm run demo:bootstrap-mint
 npm run demo:fund-client
+npm run demo:e2e
 ```

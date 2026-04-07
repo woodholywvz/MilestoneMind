@@ -3,6 +3,7 @@ export const MILESTONE_MIND_MAX_LENGTHS = {
   evidenceUri: 256,
   evidenceSummary: 280,
   assessmentSummary: 280,
+  disputeReason: 280,
 } as const;
 
 export const MOCK_USDC_DECIMALS = 6;

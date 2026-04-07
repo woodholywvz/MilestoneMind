@@ -3,6 +3,7 @@ import type { DealStatus } from "@milestone-mind/shared";
 import { AssessmentExecutorPanel } from "./AssessmentExecutorPanel";
 import { AssessmentCard } from "./AssessmentCard";
 import { EvidenceSubmitCard } from "./EvidenceSubmitCard";
+import { MilestoneSettlementPanel } from "./MilestoneSettlementPanel";
 import { StatusBadge } from "./StatusBadge";
 import { isZeroEvidenceHash } from "../lib/evidence/hash";
 
@@ -10,7 +11,9 @@ export function MilestoneList({
   dealPubkey,
   dealId,
   dealStatusValue,
+  clientPubkey,
   freelancerPubkey,
+  mintPubkey,
   platformAdminPubkey,
   platformAssessorPubkey,
   milestones,
@@ -18,7 +21,9 @@ export function MilestoneList({
   dealPubkey: string;
   dealId: number;
   dealStatusValue: DealStatus;
+  clientPubkey: string;
   freelancerPubkey: string;
+  mintPubkey: string;
   platformAdminPubkey: string | null;
   platformAssessorPubkey: string | null;
   milestones: MilestoneView[];
@@ -94,6 +99,16 @@ export function MilestoneList({
               milestone={milestone}
               platformAdminPubkey={platformAdminPubkey}
               platformAssessorPubkey={platformAssessorPubkey}
+            />
+            <MilestoneSettlementPanel
+              dealPubkey={dealPubkey}
+              dealStatusValue={dealStatusValue}
+              mintPubkey={mintPubkey}
+              clientPubkey={clientPubkey}
+              freelancerPubkey={freelancerPubkey}
+              platformAdminPubkey={platformAdminPubkey}
+              platformAssessorPubkey={platformAssessorPubkey}
+              milestone={milestone}
             />
             <EvidenceSubmitCard
               dealPubkey={dealPubkey}

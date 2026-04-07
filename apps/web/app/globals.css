@@ -625,6 +625,71 @@ h3 {
   color: var(--muted);
 }
 
+.deal-action-grid,
+.settlement-preview-grid,
+.timeline-list,
+.timeline-copy,
+.action-form,
+.action-block {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.deal-action-grid,
+.settlement-preview-grid {
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+}
+
+.settlement-panel {
+  display: grid;
+  gap: 0.95rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 1rem;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.timeline-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.timeline-item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.9rem;
+  align-items: start;
+  padding: 0.95rem 0;
+  border-top: 1px solid rgba(68, 48, 21, 0.08);
+}
+
+.timeline-item:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.timeline-dot {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  background: rgba(68, 48, 21, 0.08);
+}
+
+.timeline-complete .timeline-dot {
+  background: rgba(15, 122, 82, 0.12);
+  color: var(--success);
+}
+
+.timeline-pending .timeline-dot {
+  background: rgba(37, 87, 167, 0.08);
+  color: var(--info);
+}
+
 .empty-state,
 .loading-panel,
 .error-panel {
