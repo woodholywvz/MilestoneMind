@@ -5,6 +5,7 @@ const DISCRIMINATORS = {
   createDeal: [198, 212, 144, 151, 97, 56, 149, 113],
   createMilestone: [239, 58, 201, 28, 40, 186, 173, 48],
   fundDeal: [8, 26, 74, 169, 132, 56, 104, 60],
+  submitEvidence: [12, 169, 228, 194, 229, 31, 44, 39],
   submitAssessment: [7, 162, 212, 231, 150, 246, 85, 92],
   platformConfig: [160, 78, 128, 0, 248, 83, 230, 160],
   deal: [125, 223, 160, 234, 71, 162, 182, 219],
@@ -81,6 +82,22 @@ export const milestoneMindIdl = {
         { name: "system_program" },
       ],
       args: [],
+    },
+    {
+      name: "submit_evidence",
+      discriminator: [...DISCRIMINATORS.submitEvidence],
+      accounts: [
+        { name: "freelancer", writable: true, signer: true },
+        { name: "deal", writable: true },
+        { name: "milestone", writable: true },
+      ],
+      args: [
+        { name: "milestone_index", type: "u16" },
+        { name: "evidence_uri", type: "string" },
+        { name: "evidence_hash", type: { array: ["u8", 32] } },
+        { name: "evidence_summary", type: "string" },
+        { name: "attachment_count", type: "u16" },
+      ],
     },
     {
       name: "submit_assessment",

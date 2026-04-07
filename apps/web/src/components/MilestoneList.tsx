@@ -1,8 +1,21 @@
 import type { MilestoneView } from "../lib/anchor/queries";
+import type { DealStatus } from "@milestone-mind/shared";
 import { AssessmentCard } from "./AssessmentCard";
+import { EvidenceSubmitCard } from "./EvidenceSubmitCard";
 import { StatusBadge } from "./StatusBadge";
+import { isZeroEvidenceHash } from "../lib/evidence/hash";
 
-export function MilestoneList({ milestones }: Readonly<{ milestones: MilestoneView[] }>) {
+export function MilestoneList({
+  dealPubkey,
+  dealStatusValue,
+  freelancerPubkey,
+  milestones,
+}: Readonly<{
+  dealPubkey: string;
+  dealStatusValue: DealStatus;
+  freelancerPubkey: string;
+  milestones: MilestoneView[];
+}>) {
   if (milestones.length === 0) {
     return (
       <section className="panel">
@@ -59,8 +72,22 @@ export function MilestoneList({ milestones }: Readonly<{ milestones: MilestoneVi
                 <p className="sub-eyebrow">Evidence Summary</p>
                 <p className="evidence-copy">{milestone.evidenceSummary || "No summary recorded"}</p>
               </div>
+              <div>
+                <p className="sub-eyebrow">Evidence Hash</p>
+                <p className="evidence-copy evidence-hash">
+                  {isZeroEvidenceHash(milestone.evidenceHashHex)
+                    ? "No hash recorded"
+                    : milestone.evidenceHashHex}
+                </p>
+              </div>
             </div>
             {milestone.assessment ? <AssessmentCard assessment={milestone.assessment} /> : null}
+            <EvidenceSubmitCard
+              dealPubkey={dealPubkey}
+              dealStatusValue={dealStatusValue}
+              freelancerPubkey={freelancerPubkey}
+              milestone={milestone}
+            />
           </article>
         ))}
       </div>

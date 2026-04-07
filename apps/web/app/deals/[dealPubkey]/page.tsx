@@ -122,7 +122,12 @@ export default async function DealDetailPage({
           </dl>
         </section>
 
-        <MilestoneList milestones={deal.milestones} />
+        <MilestoneList
+          dealPubkey={deal.pubkey}
+          dealStatusValue={deal.statusValue}
+          freelancerPubkey={deal.freelancerPubkey}
+          milestones={deal.milestones}
+        />
       </section>
     </main>
   );

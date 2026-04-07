@@ -345,6 +345,39 @@ h3 {
   margin-top: 1rem;
 }
 
+.evidence-submit-card,
+.submit-success {
+  display: grid;
+  gap: 0.85rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 1rem;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.submit-success {
+  border-color: rgba(15, 122, 82, 0.18);
+  background: rgba(15, 122, 82, 0.08);
+}
+
+.submit-success a {
+  width: fit-content;
+  color: var(--success);
+  font-weight: 700;
+}
+
+.evidence-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.evidence-hash {
+  word-break: break-all;
+  font-family: "Geist Mono", monospace;
+  font-size: 0.84rem;
+}
+
 .create-form,
 .milestone-editor-list,
 .progress-list {
@@ -381,6 +414,41 @@ h3 {
 .field-group input:focus {
   outline: 2px solid rgba(184, 111, 42, 0.2);
   border-color: rgba(184, 111, 42, 0.34);
+}
+
+.field-group textarea {
+  width: 100%;
+  min-height: 7.5rem;
+  padding: 0.85rem 0.95rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(68, 48, 21, 0.14);
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--text);
+  font: inherit;
+  resize: vertical;
+}
+
+.field-group textarea:focus {
+  outline: 2px solid rgba(184, 111, 42, 0.2);
+  border-color: rgba(184, 111, 42, 0.34);
+}
+
+.field-group input[type="file"] {
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+.field-group input[type="file"]::file-selector-button {
+  margin-right: 0.85rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.74);
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .field-error {

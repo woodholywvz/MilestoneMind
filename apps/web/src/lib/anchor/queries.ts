@@ -67,9 +67,11 @@ export interface MilestoneView {
   title: string;
   statusLabel: string;
   statusTone: ReturnType<typeof formatMilestoneStatus>["tone"];
+  statusValue: ReturnType<typeof formatMilestoneStatus>["value"];
   amountLabel: string;
   releasedAmountLabel: string;
   evidenceUri: string;
+  evidenceHashHex: string;
   evidenceSummary: string;
   attachmentCount: number;
   submittedAtLabel: string;
@@ -85,6 +87,7 @@ export interface DealDetailView {
   title: string;
   statusLabel: string;
   statusTone: ReturnType<typeof formatDealStatus>["tone"];
+  statusValue: ReturnType<typeof formatDealStatus>["value"];
   clientPubkey: string;
   clientExplorerHref: string;
   freelancerPubkey: string;
@@ -165,9 +168,11 @@ export async function fetchDealDetail(dealPubkey: string): Promise<DealDetailVie
         title: account.title,
         statusLabel: milestoneStatus.label,
         statusTone: milestoneStatus.tone,
+        statusValue: milestoneStatus.value,
         amountLabel: formatTokenAmount(account.amount),
         releasedAmountLabel: formatTokenAmount(account.releasedAmount),
         evidenceUri: account.evidenceUri,
+        evidenceHashHex: toHex(account.evidenceHash),
         evidenceSummary: account.evidenceSummary,
         attachmentCount: account.attachmentCount,
         submittedAtLabel: formatTimestamp(account.lastSubmittedAt),
@@ -190,6 +195,7 @@ export async function fetchDealDetail(dealPubkey: string): Promise<DealDetailVie
     title: deal.title,
     statusLabel: dealStatus.label,
     statusTone: dealStatus.tone,
+    statusValue: dealStatus.value,
     clientPubkey: deal.client.toBase58(),
     clientExplorerHref: buildExplorerAccountUrl(deal.client.toBase58()),
     freelancerPubkey: deal.freelancer.toBase58(),
