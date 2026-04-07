@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { DealCard } from "../src/components/DealCard";
 import { fetchAllDeals } from "../src/lib/anchor/queries";
 
@@ -34,9 +35,14 @@ export default async function HomePage() {
     <main className="page-shell">
       <section className="page-content">
         <section className="hero-card">
-          <div>
-            <p className="section-eyebrow">MilestoneMind</p>
-            <h1>Escrow lifecycle, visible on-chain.</h1>
+          <div className="section-header">
+            <div>
+              <p className="section-eyebrow">MilestoneMind</p>
+              <h1>Escrow lifecycle, visible on-chain.</h1>
+            </div>
+            <Link className="primary-link" href="/create">
+              Create and fund
+            </Link>
           </div>
           <p className="hero-copy">
             Track funded deals, milestone evidence, AI-backed assessments, releases, disputes, and

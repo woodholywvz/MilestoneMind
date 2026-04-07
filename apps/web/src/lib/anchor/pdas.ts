@@ -1,11 +1,12 @@
 import { PublicKey } from "@solana/web3.js";
 import type { DerivedPda } from "@milestone-mind/shared/onchain";
 
-const PLATFORM_SEED = Buffer.from("platform", "utf8");
-const DEAL_SEED = Buffer.from("deal", "utf8");
-const MILESTONE_SEED = Buffer.from("milestone", "utf8");
-const ASSESSMENT_SEED = Buffer.from("assessment", "utf8");
-const VAULT_SEED = Buffer.from("vault", "utf8");
+const textEncoder = new TextEncoder();
+const PLATFORM_SEED = textEncoder.encode("platform");
+const DEAL_SEED = textEncoder.encode("deal");
+const MILESTONE_SEED = textEncoder.encode("milestone");
+const ASSESSMENT_SEED = textEncoder.encode("assessment");
+const VAULT_SEED = textEncoder.encode("vault");
 
 export function derivePlatformPda(programId: PublicKey): DerivedPda {
   return findPda([PLATFORM_SEED], programId);
@@ -40,20 +41,22 @@ export function deriveVaultAuthorityPda(
   return findPda([VAULT_SEED, dealPublicKey.toBuffer()], programId);
 }
 
-function findPda(seeds: Buffer[], programId: PublicKey): DerivedPda {
+function findPda(seeds: Uint8Array[], programId: PublicKey): DerivedPda {
   const [publicKey, bump] = PublicKey.findProgramAddressSync(seeds, programId);
   return { publicKey, bump };
 }
 
-function u64LeBuffer(value: number | bigint): Buffer {
+function u64LeBuffer(value: number | bigint): Uint8Array {
   const normalized = typeof value === "bigint" ? value : BigInt(value);
-  const buffer = Buffer.alloc(8);
-  buffer.writeBigUInt64LE(normalized);
-  return buffer;
+  const buffer = new ArrayBuffer(8);
+  const view = new DataView(buffer);
+  view.setBigUint64(0, normalized, true);
+  return new Uint8Array(buffer);
 }
 
-function u16LeBuffer(value: number): Buffer {
-  const buffer = Buffer.alloc(2);
-  buffer.writeUInt16LE(value);
-  return buffer;
+function u16LeBuffer(value: number): Uint8Array {
+  const buffer = new ArrayBuffer(2);
+  const view = new DataView(buffer);
+  view.setUint16(0, value, true);
+  return new Uint8Array(buffer);
 }

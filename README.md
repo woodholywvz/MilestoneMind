@@ -51,7 +51,20 @@ Web environment variables:
 Routes:
 
 - `/` hero, wallet connect, and `All Deals` list from on-chain `Deal` accounts
+- `/create` wallet-driven create flow for `create_deal`, `create_milestone`, and `fund_deal`
 - `/deals/[dealPubkey]` deal summary, milestone list, and assessment summaries when present
+
+Create flow:
+
+1. Connect a wallet in the web app.
+2. Open `/create`.
+3. Enter the freelancer pubkey, deal title, and one or more milestones.
+4. Review the total required mock USDC amount and connected wallet balance.
+5. Submit the sequential flow:
+   - `create_deal`
+   - `create_milestone` for each row
+   - `fund_deal`
+6. Track signatures in the progress panel, then redirect to the new deal detail page.
 
 ## AI service
 

@@ -12,6 +12,7 @@ export type StatusTone = "neutral" | "info" | "success" | "warning" | "danger";
 
 type AnchorEnumMirror = Record<string, Record<string, never>>;
 type NumericLike = bigint | number | string | { toString(): string };
+const TOKEN_AMOUNT_PATTERN = /^\d+(?:\.\d{0,6})?$/;
 
 export function formatTokenAmount(
   value: NumericLike,
@@ -26,6 +27,26 @@ export function formatTokenAmount(
   const formattedInteger = Number.parseInt(integerPart, 10).toLocaleString("en-US");
   const result = fractionPart ? `${formattedInteger}.${fractionPart}` : formattedInteger;
   return `${negative ? "-" : ""}${result} USDC`;
+}
+
+export function parseTokenAmountInput(
+  value: string,
+  decimals = MOCK_USDC_DECIMALS,
+): bigint | null {
+  const normalized = value.trim();
+
+  if (!normalized || !TOKEN_AMOUNT_PATTERN.test(normalized)) {
+    return null;
+  }
+
+  const [integerPart, fractionPart = ""] = normalized.split(".");
+  const paddedFraction = fractionPart.padEnd(decimals, "0");
+  return BigInt(integerPart) * 10n ** BigInt(decimals) + BigInt(paddedFraction || "0");
+}
+
+export function isPositiveTokenAmount(value: string): boolean {
+  const parsed = parseTokenAmountInput(value);
+  return parsed !== null && parsed > 0n;
 }
 
 export function formatBps(value: number): string {

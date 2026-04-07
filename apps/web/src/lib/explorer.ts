@@ -4,6 +4,10 @@ export function buildExplorerAccountUrl(address: string): string {
   return `https://explorer.solana.com/address/${address}${buildClusterQuery()}`;
 }
 
+export function buildExplorerTransactionUrl(signature: string): string {
+  return `https://explorer.solana.com/tx/${signature}${buildClusterQuery()}`;
+}
+
 function buildClusterQuery(): string {
   const config = getWebConfig();
 

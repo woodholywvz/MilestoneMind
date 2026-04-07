@@ -1,9 +1,16 @@
-import { createHash } from "node:crypto";
 import type { Idl } from "@coral-xyz/anchor";
 
-function discriminator(namespace: string, name: string): number[] {
-  return [...createHash("sha256").update(`${namespace}:${name}`).digest().subarray(0, 8)];
-}
+const DISCRIMINATORS = {
+  initializePlatform: [119, 201, 101, 45, 75, 122, 89, 3],
+  createDeal: [198, 212, 144, 151, 97, 56, 149, 113],
+  createMilestone: [239, 58, 201, 28, 40, 186, 173, 48],
+  fundDeal: [8, 26, 74, 169, 132, 56, 104, 60],
+  submitAssessment: [7, 162, 212, 231, 150, 246, 85, 92],
+  platformConfig: [160, 78, 128, 0, 248, 83, 230, 160],
+  deal: [125, 223, 160, 234, 71, 162, 182, 219],
+  milestone: [38, 210, 239, 177, 85, 184, 10, 44],
+  assessment: [117, 114, 11, 171, 133, 118, 203, 33],
+} as const;
 
 export const milestoneMindIdl = {
   address: "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkgMQHG7d43x",
@@ -14,8 +21,70 @@ export const milestoneMindIdl = {
   },
   instructions: [
     {
+      name: "initialize_platform",
+      discriminator: [...DISCRIMINATORS.initializePlatform],
+      accounts: [
+        { name: "payer", writable: true, signer: true },
+        { name: "platform", writable: true },
+        { name: "system_program" },
+      ],
+      args: [
+        { name: "admin", type: "pubkey" },
+        { name: "assessor", type: "pubkey" },
+        { name: "usdc_mint", type: "pubkey" },
+      ],
+    },
+    {
+      name: "create_deal",
+      discriminator: [...DISCRIMINATORS.createDeal],
+      accounts: [
+        { name: "platform", writable: true },
+        { name: "client", writable: true, signer: true },
+        { name: "deal", writable: true },
+        { name: "system_program" },
+      ],
+      args: [
+        { name: "freelancer", type: "pubkey" },
+        { name: "title", type: "string" },
+        { name: "milestone_count", type: "u16" },
+        { name: "total_amount", type: "u64" },
+      ],
+    },
+    {
+      name: "create_milestone",
+      discriminator: [...DISCRIMINATORS.createMilestone],
+      accounts: [
+        { name: "client", writable: true, signer: true },
+        { name: "deal" },
+        { name: "milestone", writable: true },
+        { name: "system_program" },
+      ],
+      args: [
+        { name: "index", type: "u16" },
+        { name: "title", type: "string" },
+        { name: "amount", type: "u64" },
+      ],
+    },
+    {
+      name: "fund_deal",
+      discriminator: [...DISCRIMINATORS.fundDeal],
+      accounts: [
+        { name: "platform" },
+        { name: "client", writable: true, signer: true },
+        { name: "deal", writable: true },
+        { name: "mint" },
+        { name: "vault_authority" },
+        { name: "client_token_account", writable: true },
+        { name: "vault_token_account", writable: true },
+        { name: "token_program" },
+        { name: "associated_token_program" },
+        { name: "system_program" },
+      ],
+      args: [],
+    },
+    {
       name: "submit_assessment",
-      discriminator: discriminator("global", "submit_assessment"),
+      discriminator: [...DISCRIMINATORS.submitAssessment],
       accounts: [
         { name: "platform" },
         { name: "assessor", writable: true, signer: true },
@@ -37,19 +106,19 @@ export const milestoneMindIdl = {
   accounts: [
     {
       name: "PlatformConfig",
-      discriminator: discriminator("account", "PlatformConfig"),
+      discriminator: [...DISCRIMINATORS.platformConfig],
     },
     {
       name: "Deal",
-      discriminator: discriminator("account", "Deal"),
+      discriminator: [...DISCRIMINATORS.deal],
     },
     {
       name: "Milestone",
-      discriminator: discriminator("account", "Milestone"),
+      discriminator: [...DISCRIMINATORS.milestone],
     },
     {
       name: "Assessment",
-      discriminator: discriminator("account", "Assessment"),
+      discriminator: [...DISCRIMINATORS.assessment],
     },
   ],
   types: [

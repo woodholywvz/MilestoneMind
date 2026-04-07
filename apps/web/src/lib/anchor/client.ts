@@ -1,50 +1,26 @@
 import "server-only";
 
-import { AnchorProvider, Program } from "@coral-xyz/anchor";
+import { Connection, PublicKey } from "@solana/web3.js";
+import type { Program } from "@coral-xyz/anchor";
+import type { MilestoneMindIdl } from "@milestone-mind/shared/idl";
 import {
-  Connection,
-  PublicKey,
-  type Transaction,
-  type VersionedTransaction,
-} from "@solana/web3.js";
-import { milestoneMindIdl, type MilestoneMindIdl } from "@milestone-mind/shared/idl";
-import { getWebConfig } from "../env";
-
-class ReadonlyWallet {
-  readonly publicKey = PublicKey.default;
-
-  async signTransaction<T extends Transaction | VersionedTransaction>(
-    transaction: T,
-  ): Promise<T> {
-    return transaction;
-  }
-
-  async signAllTransactions<T extends Transaction | VersionedTransaction>(
-    transactions: T[],
-  ): Promise<T[]> {
-    return transactions;
-  }
-}
+  createMilestoneMindConnection,
+  createMilestoneMindProgram,
+  createMilestoneMindProgramId,
+  ReadonlyMilestoneMindWallet,
+} from "./program";
 
 export function createReadonlyConnection(): Connection {
-  return new Connection(getWebConfig().rpcUrl, "confirmed");
+  return createMilestoneMindConnection();
 }
 
 export function createProgramId(): PublicKey {
-  return new PublicKey(getWebConfig().programId);
+  return createMilestoneMindProgramId();
 }
 
 export function createReadonlyProgram(): Program<MilestoneMindIdl> {
-  const connection = createReadonlyConnection();
-  const provider = new AnchorProvider(connection, new ReadonlyWallet(), {
-    commitment: "confirmed",
-  });
-
-  return new Program(
-    {
-      ...milestoneMindIdl,
-      address: createProgramId().toBase58(),
-    },
-    provider,
+  return createMilestoneMindProgram(
+    createReadonlyConnection(),
+    new ReadonlyMilestoneMindWallet(),
   );
 }
