@@ -7,6 +7,7 @@ import type {
   AssessmentAccount,
   DealAccount,
   MilestoneAccount,
+  PlatformConfigAccount,
 } from "@milestone-mind/shared/onchain";
 import { buildExplorerAccountUrl } from "../explorer";
 import {
@@ -18,7 +19,11 @@ import {
   formatTimestamp,
 } from "../formatters";
 import { createProgramId, createReadonlyProgram } from "./client";
-import { deriveAssessmentPda, deriveVaultAuthorityPda } from "./pdas";
+import {
+  deriveAssessmentPda,
+  derivePlatformPda,
+  deriveVaultAuthorityPda,
+} from "./pdas";
 
 const ACCOUNT_DISCRIMINATOR_SIZE = 8;
 
@@ -92,6 +97,8 @@ export interface DealDetailView {
   clientExplorerHref: string;
   freelancerPubkey: string;
   freelancerExplorerHref: string;
+  platformAdminPubkey: string | null;
+  platformAssessorPubkey: string | null;
   mintPubkey: string;
   mintExplorerHref: string;
   totalAmountLabel: string;
@@ -137,6 +144,7 @@ export async function fetchDealDetail(dealPubkey: string): Promise<DealDetailVie
   const dealClient = getAccountClient<DealAccount>(program, "deal");
   const milestoneClient = getAccountClient<MilestoneAccount>(program, "milestone");
   const assessmentClient = getAccountClient<AssessmentAccount>(program, "assessment");
+  const platformClient = getAccountClient<PlatformConfigAccount>(program, "platformConfig");
   const dealPublicKey = new PublicKey(dealPubkey);
 
   const deal = await fetchNullable(dealClient, dealPublicKey);
@@ -144,6 +152,11 @@ export async function fetchDealDetail(dealPubkey: string): Promise<DealDetailVie
   if (deal === null) {
     return null;
   }
+
+  const platform = await fetchNullable(
+    platformClient,
+    derivePlatformPda(programId).publicKey,
+  );
 
   const milestoneFilter: GetProgramAccountsFilter = {
     memcmp: {
@@ -200,6 +213,8 @@ export async function fetchDealDetail(dealPubkey: string): Promise<DealDetailVie
     clientExplorerHref: buildExplorerAccountUrl(deal.client.toBase58()),
     freelancerPubkey: deal.freelancer.toBase58(),
     freelancerExplorerHref: buildExplorerAccountUrl(deal.freelancer.toBase58()),
+    platformAdminPubkey: platform?.admin.toBase58() ?? null,
+    platformAssessorPubkey: platform?.assessor.toBase58() ?? null,
     mintPubkey: deal.mint.toBase58(),
     mintExplorerHref: buildExplorerAccountUrl(deal.mint.toBase58()),
     totalAmountLabel: formatTokenAmount(deal.totalAmount),

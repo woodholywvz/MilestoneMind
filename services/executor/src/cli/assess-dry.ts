@@ -12,9 +12,9 @@ async function main(): Promise<void> {
       requestId: result.requestId,
       dealId: result.dealId,
       milestoneIndex: result.milestoneIndex,
-      dealPda: result.dealPda,
-      milestonePda: result.milestonePda,
-      assessment: result.assessment,
+      dealPubkey: result.dealPubkey,
+      milestonePubkey: result.milestonePubkey,
+      verdict: result.verdict,
     }),
   );
 }

@@ -47,12 +47,13 @@ Web environment variables:
 - `NEXT_PUBLIC_RPC_URL` default `http://127.0.0.1:8899`
 - `NEXT_PUBLIC_PROGRAM_ID` default `Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkgMQHG7d43x`
 - `NEXT_PUBLIC_CLUSTER` one of `localnet`, `devnet`, `testnet`, `mainnet-beta`
+- `NEXT_PUBLIC_EXECUTOR_BASE_URL` default `http://127.0.0.1:8080`
 
 Routes:
 
 - `/` hero, wallet connect, and `All Deals` list from on-chain `Deal` accounts
 - `/create` wallet-driven create flow for `create_deal`, `create_milestone`, and `fund_deal`
-- `/deals/[dealPubkey]` deal summary, milestone list, and assessment summaries when present
+- `/deals/[dealPubkey]` deal summary, milestone list, freelancer evidence submit, and assessor/admin dry-or-commit assessment panel
 
 Create flow:
 
@@ -65,6 +66,15 @@ Create flow:
    - `create_milestone` for each row
    - `fund_deal`
 6. Track signatures in the progress panel, then redirect to the new deal detail page.
+
+Assessment panel flow:
+
+1. Connect a wallet that matches `platform.assessor` or `platform.admin`.
+2. Open a deal detail page with a milestone in `EvidenceSubmitted`.
+3. Use `Dry assess` to call the executor without writing on-chain state.
+4. Review `decision`, `confidenceBps`, `approvedBps`, `ruleTrace`, and `rationaleHashHex`.
+5. Use `Commit assess` to call the executor commit endpoint.
+6. After commit, the page refreshes and the on-chain assessment summary appears on the milestone.
 
 ## AI service
 
@@ -211,6 +221,51 @@ Commit flow:
 4. Call the AI service and parse the shared assessment response.
 5. Submit `submit_assessment` on-chain.
 6. Print the transaction signature and the final milestone status.
+
+Executor HTTP contract:
+
+- `GET /health`
+- `POST /assess/dry`
+- `POST /assess/commit`
+
+Assessment request body:
+
+```json
+{
+  "dealId": 0,
+  "milestoneIndex": 0
+}
+```
+
+Dry response shape:
+
+```json
+{
+  "requestId": "5af17e2c",
+  "dealId": 0,
+  "milestoneIndex": 0,
+  "dealPubkey": "9Z6qJDPoZPf8ePU7EKA2USZ1NKXuE2QQ4CzngHippD5K",
+  "milestonePubkey": "2xByv61xhvrurZGk1PK2cKL3v94qBrLgN2oYvjsWMphi",
+  "assessmentPubkey": "3V8ptmXxR6K6mW6eP6rG2Xx2bGZ3qM5u5b3o7sM3e7Nf",
+  "verdict": {
+    "decision": "approve",
+    "confidenceBps": 9100,
+    "approvedBps": 7000,
+    "summary": "Evidence is credible and sufficient for a partial approval.",
+    "rationaleHashHex": "abababababababababababababababababababababababababababababababab",
+    "ruleTrace": [
+      "engine: rules-v1",
+      "decision: approve"
+    ],
+    "engineVersion": "rules-v1+openai-v1"
+  }
+}
+```
+
+Commit response adds:
+
+- `txSignature`
+- `milestoneStatus`
 
 ## Local validator
 

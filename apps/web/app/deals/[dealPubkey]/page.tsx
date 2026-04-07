@@ -124,8 +124,11 @@ export default async function DealDetailPage({
 
         <MilestoneList
           dealPubkey={deal.pubkey}
+          dealId={deal.dealId}
           dealStatusValue={deal.statusValue}
           freelancerPubkey={deal.freelancerPubkey}
+          platformAdminPubkey={deal.platformAdminPubkey}
+          platformAssessorPubkey={deal.platformAssessorPubkey}
           milestones={deal.milestones}
         />
       </section>

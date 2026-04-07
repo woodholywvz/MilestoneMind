@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import anchor from "@coral-xyz/anchor";
+import { executorAssessCommitResponseSchema, executorAssessDryResponseSchema } from "@milestone-mind/shared";
 import { PublicKey } from "@solana/web3.js";
 import { deriveDealPda } from "../dist/anchor/pdas.js";
 import { buildAssessRequest, parseAiAssessmentResponse } from "../dist/lib/payload.js";
@@ -206,7 +207,51 @@ test("commit mode submits on-chain assessment and returns the final milestone st
   );
 
   assert.equal(submittedDecisionKey, "approve");
+  executorAssessCommitResponseSchema.parse(result);
   assert.equal(result.txSignature, "mock-signature-123");
   assert.equal(result.milestoneStatus, "approved");
-  assert.equal(result.assessment.decision, "approve");
+  assert.equal(result.verdict.decision, "approve");
+});
+
+test("dry assessment result matches shared executor response schema", async () => {
+  const programId = new PublicKey("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkgMQHG7d43x");
+  const dealPublicKey = deriveDealPda(0, programId).publicKey;
+
+  const result = await performDryAssessment(
+    { dealId: 0, milestoneIndex: 0 },
+    {
+      config: {
+        executorHost: "127.0.0.1",
+        executorPort: 8080,
+        solanaRpcUrl: "http://127.0.0.1:8899",
+        executorWalletPath: "C:/tmp/id.json",
+        aiServiceBaseUrl: "http://127.0.0.1:8000",
+        programId,
+      },
+      anchorClient: {
+        programId,
+        async fetchDeal() {
+          return { ...buildDeal(), client: dealPublicKey };
+        },
+        async fetchMilestone() {
+          return { ...buildMilestone("evidenceSubmitted"), deal: dealPublicKey };
+        },
+      },
+      async requestAiAssessment() {
+        return {
+          decision: "approve",
+          confidenceBps: 9100,
+          approvedBps: 7000,
+          summary: "Evidence is credible and sufficient for a partial approval.",
+          rationaleHashHex: "ab".repeat(32),
+          ruleTrace: ["engine: rules-v1", "decision: approve"],
+          engineVersion: "rules-v1+openai-v1",
+        };
+      },
+    },
+  );
+
+  executorAssessDryResponseSchema.parse(result);
+  assert.equal(result.dealPubkey, dealPublicKey.toBase58());
+  assert.equal(result.verdict.decision, "approve");
 });

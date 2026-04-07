@@ -6,6 +6,7 @@ import {
   MilestoneStatus,
   type MilestoneStatusMirror,
   MOCK_USDC_DECIMALS,
+  type ServiceAssessmentDecision,
 } from "@milestone-mind/shared";
 
 export type StatusTone = "neutral" | "info" | "success" | "warning" | "danger";
@@ -80,6 +81,14 @@ export function formatDealStatus(status: DealStatusMirror): {
   value: DealStatus;
 } {
   const value = enumValue(status) as DealStatus;
+  return formatDealStatusValue(value);
+}
+
+export function formatDealStatusValue(value: DealStatus): {
+  label: string;
+  tone: StatusTone;
+  value: DealStatus;
+} {
 
   switch (value) {
     case DealStatus.Draft:
@@ -103,6 +112,14 @@ export function formatMilestoneStatus(status: MilestoneStatusMirror): {
   value: MilestoneStatus;
 } {
   const value = enumValue(status) as MilestoneStatus;
+  return formatMilestoneStatusValue(value);
+}
+
+export function formatMilestoneStatusValue(value: MilestoneStatus): {
+  label: string;
+  tone: StatusTone;
+  value: MilestoneStatus;
+} {
 
   switch (value) {
     case MilestoneStatus.PendingEvidence:
@@ -132,6 +149,26 @@ export function formatAssessmentDecision(decision: AssessmentDecisionMirror): {
   value: AssessmentDecision;
 } {
   const value = enumValue(decision) as AssessmentDecision;
+  return formatAssessmentDecisionValue(value);
+}
+
+export function formatAssessmentDecisionValue(value: AssessmentDecision): {
+  label: string;
+  tone: StatusTone;
+  value: AssessmentDecision;
+};
+export function formatAssessmentDecisionValue(value: ServiceAssessmentDecision): {
+  label: string;
+  tone: StatusTone;
+  value: ServiceAssessmentDecision;
+};
+export function formatAssessmentDecisionValue(
+  value: AssessmentDecision | ServiceAssessmentDecision,
+): {
+  label: string;
+  tone: StatusTone;
+  value: AssessmentDecision | ServiceAssessmentDecision;
+} {
 
   switch (value) {
     case AssessmentDecision.Approve:
@@ -141,6 +178,8 @@ export function formatAssessmentDecision(decision: AssessmentDecisionMirror): {
     case AssessmentDecision.Dispute:
       return { label: "Dispute", tone: "danger", value };
   }
+
+  throw new Error(`Unsupported assessment decision: ${String(value)}`);
 }
 
 function enumValue(value: AnchorEnumMirror): string {

@@ -589,6 +589,42 @@ h3 {
   background: rgba(255, 255, 255, 0.72);
 }
 
+.assessment-executor-card {
+  display: grid;
+  gap: 0.9rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 1rem;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.assessment-actions,
+.rule-trace-list {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.assessment-actions {
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+}
+
+.assessment-result-card {
+  margin-top: 0;
+}
+
+.rule-trace {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.9rem;
+}
+
+.rule-trace-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: var(--muted);
+}
+
 .empty-state,
 .loading-panel,
 .error-panel {

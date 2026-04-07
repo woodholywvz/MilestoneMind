@@ -1,5 +1,6 @@
 import type { MilestoneView } from "../lib/anchor/queries";
 import type { DealStatus } from "@milestone-mind/shared";
+import { AssessmentExecutorPanel } from "./AssessmentExecutorPanel";
 import { AssessmentCard } from "./AssessmentCard";
 import { EvidenceSubmitCard } from "./EvidenceSubmitCard";
 import { StatusBadge } from "./StatusBadge";
@@ -7,13 +8,19 @@ import { isZeroEvidenceHash } from "../lib/evidence/hash";
 
 export function MilestoneList({
   dealPubkey,
+  dealId,
   dealStatusValue,
   freelancerPubkey,
+  platformAdminPubkey,
+  platformAssessorPubkey,
   milestones,
 }: Readonly<{
   dealPubkey: string;
+  dealId: number;
   dealStatusValue: DealStatus;
   freelancerPubkey: string;
+  platformAdminPubkey: string | null;
+  platformAssessorPubkey: string | null;
   milestones: MilestoneView[];
 }>) {
   if (milestones.length === 0) {
@@ -82,6 +89,12 @@ export function MilestoneList({
               </div>
             </div>
             {milestone.assessment ? <AssessmentCard assessment={milestone.assessment} /> : null}
+            <AssessmentExecutorPanel
+              dealId={dealId}
+              milestone={milestone}
+              platformAdminPubkey={platformAdminPubkey}
+              platformAssessorPubkey={platformAssessorPubkey}
+            />
             <EvidenceSubmitCard
               dealPubkey={dealPubkey}
               dealStatusValue={dealStatusValue}

@@ -55,11 +55,10 @@ export interface DryAssessmentResult {
   requestId: string;
   dealId: number;
   milestoneIndex: number;
-  dealPda: string;
-  milestonePda: string;
-  assessmentPda: string;
-  vaultAuthorityPda: string;
-  assessment: AssessResponse;
+  dealPubkey: string;
+  milestonePubkey: string;
+  assessmentPubkey: string;
+  verdict: AssessResponse;
 }
 
 export interface CommitAssessmentResult extends DryAssessmentResult {
@@ -107,11 +106,10 @@ export async function performDryAssessment(
     requestId: prepared.requestId,
     dealId: prepared.options.dealId,
     milestoneIndex: prepared.options.milestoneIndex,
-    dealPda: prepared.dealPda.publicKey.toBase58(),
-    milestonePda: prepared.milestonePda.publicKey.toBase58(),
-    assessmentPda: prepared.assessmentPda.publicKey.toBase58(),
-    vaultAuthorityPda: prepared.vaultAuthorityPda.publicKey.toBase58(),
-    assessment,
+    dealPubkey: prepared.dealPda.publicKey.toBase58(),
+    milestonePubkey: prepared.milestonePda.publicKey.toBase58(),
+    assessmentPubkey: prepared.assessmentPda.publicKey.toBase58(),
+    verdict: assessment,
   };
 }
 
@@ -175,13 +173,12 @@ export async function performCommitAssessment(
     requestId: prepared.requestId,
     dealId: prepared.options.dealId,
     milestoneIndex: prepared.options.milestoneIndex,
-    dealPda: prepared.dealPda.publicKey.toBase58(),
-    milestonePda: prepared.milestonePda.publicKey.toBase58(),
-    assessmentPda: prepared.assessmentPda.publicKey.toBase58(),
-    vaultAuthorityPda: prepared.vaultAuthorityPda.publicKey.toBase58(),
+    dealPubkey: prepared.dealPda.publicKey.toBase58(),
+    milestonePubkey: prepared.milestonePda.publicKey.toBase58(),
+    assessmentPubkey: prepared.assessmentPda.publicKey.toBase58(),
     txSignature,
     milestoneStatus,
-    assessment,
+    verdict: assessment,
   };
 }
 
